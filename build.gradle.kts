@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "dev.maheshbabu11"
-version = "1.0.0"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -58,10 +58,10 @@ tasks.named("build") {
 }
 
 tasks {
-    // Baseline build number (sinceBuild) tracks ideLine; no upper bound by default
+    // Baseline build number (sinceBuild) tracks ideLine;
     patchPluginXml {
         sinceBuild.set(ideLine)
-        untilBuild.set(null as String?)
+        untilBuild.set("${ideLine}.*")
     }
 
     buildSearchableOptions {
@@ -86,6 +86,8 @@ tasks {
     runPluginVerifier {
         ideVersions.set(listOf(ideVersion))
     }
+    verifyPlugin {
+      }
 
     // Copy the built ZIP to dist/<version>/ after build
     val buildPluginTask = named<org.gradle.api.tasks.bundling.Zip>("buildPlugin")

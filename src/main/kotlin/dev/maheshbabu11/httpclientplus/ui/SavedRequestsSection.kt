@@ -275,7 +275,7 @@ class SavedRequestsSection(
             add(JMenuItem("Open", AllIcons.Actions.Edit).apply { addActionListener { openSelectedFile() } })
             add(JMenuItem("Delete", AllIcons.General.Delete).apply { addActionListener { deleteSelectedFile() } })
             addSeparator()
-            add(JMenuItem("Show in Files", AllIcons.Actions.Menu_open).apply {
+            add(JMenuItem("Show in Files", AllIcons.Actions.NewFolder).apply {
                 addActionListener {
                     getSelectedFile()?.let { vFile ->
                         RevealFileAction.openFile(Paths.get(vFile.path))
