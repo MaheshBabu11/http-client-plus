@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "dev.maheshbabu11"
-version = "1.0.1"
+version = "1.0.2"
 
 repositories {
     mavenCentral()
@@ -22,7 +22,7 @@ java {
 
 // Map a simple IDE line selector (build baseline) to product version string
 val ideLine: String = providers.gradleProperty("ideLine").orNull ?: "252"
-val ideVersion: String = when (ideLine) {
+val ideVersion: String = providers.gradleProperty("overrideIdeVersion").orNull ?:when (ideLine) {
     "252" -> "2025.2"
     "251" -> "2025.1"
     "243" -> "2024.3"
@@ -56,6 +56,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 tasks.named("build") {
     dependsOn("buildPlugin")
 }
+
 
 tasks {
     // Baseline build number (sinceBuild) tracks ideLine;
