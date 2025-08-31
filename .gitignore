@@ -24,7 +24,7 @@ Thumbs.db
 *.class
 
 # Generated files
-http-client-plus/requests/
+http-client-plus/
 
 # Editor-based HTTP Client requests
 http-client.private.env.json
