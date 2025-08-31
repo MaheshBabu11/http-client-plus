@@ -4,31 +4,30 @@
     <vendor email="mahesh.b.pec@gmail.com" url="https://www.maheshbabu11.dev/">Mahesh Babu</vendor>
     <version>1.0.0</version>
 
-    <description>
-        <![CDATA[
-        Postman‑like UI for composing HTTP requests that saves to IntelliJ's native .http files.
+    <description><![CDATA[
+        HTTP Client Plus provides a Postman-like UI for composing and sending HTTP requests directly inside IntelliJ IDEA.
+        Requests are saved as native <code>.http</code> files, making them portable, shareable, and version-controlled.
         <br/><br/>
-        <b>Key features</b>
+        <b>Key Features</b>
         <ul>
           <li>Method selector and URL field with an inline Send button.</li>
-          <li>Mandatory Name field; used as the .http filename and to track/update existing files.</li>
-          <li>Params tab with a key–value table; automatically appends to the URL.</li>
+          <li>Mandatory Name field used as the <code>.http</code> filename and for tracking/updating existing files.</li>
+          <li>Params tab with a key–value table that automatically appends to the URL.</li>
           <li>Headers tab with a key–value table.</li>
           <li>Body tab with a Content-Type selector and a compact overflow menu (Beautify JSON).</li>
-          <li>Multipart form-data builder: boundary input and parts table (text or file parts) with Content-Type per part.</li>
-          <li>For POST, adds <code>Content-Type: application/json</code> if missing.</li>
-          <li>Every Send saves/updates the .http file; first Send opens it, later Sends refresh if already open.</li>
-          <li>No separate Save/Retry buttons; Send handles persistence only (execution is manual).</li>
+          <li>Multipart form-data builder with boundary input and parts table (text or file) supporting Content-Type per part.</li>
+          <li>For POST requests, automatically adds <code>Content-Type: application/json</code> if missing.</li>
+          <li>Each Send saves or updates the <code>.http</code> file; the first Send opens it, later Sends refresh if already open.</li>
+          <li>No separate Save/Retry buttons — Send handles persistence only (execution is manual).</li>
         </ul>
         <b>Usage</b>
         <ul>
-          <li>Open via Tools → Open HTTP Client Plus.</li>
-          <li>Fill Name, URL, Params/Headers/Body as needed, then click Send to save.</li>
-          <li>Run the request manually from the editor with Ctrl+Enter.</li>
-          <li>Files are stored under <code>http-client-plus/requests</code> in your project.</li>
+          <li>Open via <i>Tools → Open HTTP Client Plus</i>.</li>
+          <li>Fill in Name, URL, Params/Headers/Body as needed, then click Send to save.</li>
+          <li>Run the request manually from the editor with <code>Ctrl+Enter</code>.</li>
+          <li>Files are stored under <code>http-client-plus/collections</code> in your project.</li>
         </ul>
-        ]]>
-    </description>
+    ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
 
@@ -36,9 +35,7 @@
         <toolWindow id="HTTP Client Plus"
                     anchor="left"
                     icon="/icons/toolWindow.svg"
-                    factoryClass="dev.maheshbabu11.httpclientplus.HttpClientPlusToolWindowFactory"
-        />
-
+                    factoryClass="dev.maheshbabu11.httpclientplus.HttpClientPlusToolWindowFactory"/>
         <notificationGroup id="HTTP Client Plus" displayType="BALLOON"/>
     </extensions>
 
