@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+dist/
+out/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Plugin ZIPs
+*.zip
+
+# Kotlin/Java
+*.class
+
+# Generated files
+http-client-plus/requests/
+
+# Editor-based HTTP Client requests
+http-client.private.env.json
