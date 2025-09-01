@@ -32,12 +32,13 @@
 
     <depends>com.intellij.modules.platform</depends>
 
+
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="HTTP Client Plus"
-                    anchor="left"
+                    secondary="true"
+                    anchor="right"
                     icon="/icons/toolWindow.svg"
                     factoryClass="dev.maheshbabu11.httpclientplus.HttpClientPlusToolWindowFactory"/>
-        <notificationGroup id="HTTP Client Plus" displayType="BALLOON"/>
     </extensions>
 
     <actions>
