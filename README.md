@@ -2,6 +2,8 @@
 
 A lightweight Postman-like tool window that lets you compose HTTP requests and saves them as IntelliJ HTTP Client (.http) files.
 
+Available in Intellij Marketplace: https://plugins.jetbrains.com/plugin/28340-http-client-plus
+
 Features (v1.0)
 - Method dropdown, URL field, and inline Send button
 - Mandatory Name field used as the .http file name (sanitized) and request label (### Name)
