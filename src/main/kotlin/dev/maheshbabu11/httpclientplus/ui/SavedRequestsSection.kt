@@ -316,11 +316,14 @@ class SavedRequestsSection(
     private fun parseHttpMethod(file: File): String =
         runCatching {
             file.useLines { lines ->
-                lines.firstOrNull()?.takeIf { it.matches(Regex("^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\\s+.*")) }
+                lines.filterNot { it.isBlank() || it.trim().startsWith("#") || it.trim().startsWith("//") }
+                    .firstOrNull { it.matches(Regex("^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\\s+.*", RegexOption.IGNORE_CASE)) }
+                    ?.trim()
                     ?.substringBefore(" ")
                     ?.uppercase()
             } ?: "GET"
         }.getOrDefault("GET")
+
 
 
     private fun getSelectedFile(): VirtualFile? {

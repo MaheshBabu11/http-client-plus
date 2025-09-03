@@ -10,7 +10,6 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.panels.HorizontalLayout
-import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.JBUI
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import dev.maheshbabu11.httpclientplus.http.MultipartPart

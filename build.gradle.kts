@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "dev.maheshbabu11"
-version = "1.0.2"
+version = "1.0.4"
 
 repositories {
     mavenCentral()
@@ -41,6 +41,7 @@ intellij {
         )
     )
     instrumentCode.set(true)
+    updateSinceUntilBuild.set(false)
 }
 
 kotlin {
@@ -61,8 +62,7 @@ tasks.named("build") {
 tasks {
     // Baseline build number (sinceBuild) tracks ideLine;
     patchPluginXml {
-        sinceBuild.set(ideLine)
-        untilBuild.set("${ideLine}.*")
+        sinceBuild.set("242")
     }
 
     buildSearchableOptions {

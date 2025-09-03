@@ -5,6 +5,7 @@ A lightweight Postman-like tool window that lets you compose HTTP requests and s
 Features (v1.0)
 - Method dropdown, URL field, and inline Send button
 - Mandatory Name field used as the .http file name (sanitized) and request label (### Name)
+- **Saved Requests management** with improved UI organization
 - Tabs for Params and Headers with key–value tables
 - Body tab with Content-Type selector and overflow (⋮) menu for Beautify JSON
 - Multipart form-data builder: boundary input and parts table (text or file parts) with per-part content types and file pickers
@@ -12,7 +13,7 @@ Features (v1.0)
 - Every Send saves/updates the .http file; first Send opens it. Execution is manual from the editor
 
 Requirements
-- IntelliJ IDEA 2024.1+ (Ultimate)
+- IntelliJ IDEA 2024.2+ (Ultimate)
 - Built-in HTTP Client enabled (default)
 - JDK 17+ for building
 
@@ -28,7 +29,6 @@ Build plugin ZIPs for specific IntelliJ versions
   - 251 → 2025.1
   - 243 → 2024.3
   - 242 → 2024.2
-  - 241 → 2024.1
 - Build a ZIP for a given line (artifact goes to `build/distributions/` and is also copied to `dist/<version>/`):
 ```bash
 # Default 2025.2 baseline
@@ -43,8 +43,6 @@ Build plugin ZIPs for specific IntelliJ versions
 # 2024.2
 ./gradlew clean build -PideLine=242 -x test
 
-# 2024.1
-./gradlew clean build -PideLine=241 -x test
 ```
 - ZIP naming: each ZIP includes the IDE line suffix, e.g. `http-client-plus-1.0.0-243.zip`, so ZIPs won’t collide.
 - Copies also appear under `dist/1.0.0/` (e.g., `dist/1.0.0/http-client-plus-1.0.0-243.zip`).
@@ -67,11 +65,7 @@ Usage
 5) Run the request manually from the editor (Ctrl+Enter)
 
 Notes
-- Requests are saved under: `<project>/http-client-plus/requests` by default, or to a custom folder if provided
+- Requests are saved under: `<project>/http-client-plus/collections` by default, or to a custom folder if provided
 - Each request is a standard `.http` file; you can edit and run it anytime from the editor
 
-Next Steps (optional)
-- Environment selector and variable injection ({{host}})
-- GraphQL support and body editors for XML/form-encoded
-- Persist UI state and request collections tree
-- Embedded response viewer
+

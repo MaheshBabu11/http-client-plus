@@ -5,6 +5,17 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 object UrlUtils {
+    private fun shouldSkipEncoding(s: String): Boolean {
+        // Skip encoding for templated placeholders like {{var}}
+        return s.contains("{{")
+    }
+
+    private fun encodeIfNeeded(s: String, autoEncode: Boolean): String {
+        if (!autoEncode) return s
+        if (shouldSkipEncoding(s)) return s
+        return URLEncoder.encode(s, StandardCharsets.UTF_8)
+    }
+
     fun buildUrlWithParams(
         baseUrl: String,
         params: List<Pair<String, String>>,
@@ -14,30 +25,14 @@ object UrlUtils {
         val query = params
             .filter { it.first.isNotBlank() }
             .joinToString("&") { (k0, v0) ->
-                val k = if (autoEncode) URLEncoder.encode(k0, StandardCharsets.UTF_8) else k0
-                val v = if (autoEncode) URLEncoder.encode(v0, StandardCharsets.UTF_8) else v0
+                val k = encodeIfNeeded(k0, autoEncode)
+                val v = encodeIfNeeded(v0, autoEncode)
                 "$k=$v"
             }
             .trim('&')
         if (query.isEmpty()) return baseUrl
         val separator = if (baseUrl.contains('?')) "&" else "?"
         return baseUrl + separator + query
-    }
-
-    fun variableizeHost(url: String): String {
-        if (url.contains("{{")) return url // already variableized
-        return try {
-            val u = URI(url)
-            val scheme = u.scheme ?: return url
-            val host = u.host ?: return url
-            val portPart = if (u.port != -1) ":${u.port}" else ""
-            val path = (u.rawPath ?: "").ifBlank { "/" }
-            val query = u.rawQuery?.let { "?$it" } ?: ""
-            val fragment = u.rawFragment?.let { "#$it" } ?: ""
-            "$scheme://{{host}}$portPart$path$query$fragment"
-        } catch (_: Exception) {
-            url
-        }
     }
 
     fun extractParams(url: String): List<Pair<String, String>> {
@@ -51,7 +46,6 @@ object UrlUtils {
                     if (idx >= 0) {
                         val k = part.substring(0, idx)
                         val v = part.substring(idx + 1)
-                        // Decode percent-encoded
                         val key = java.net.URLDecoder.decode(k, StandardCharsets.UTF_8)
                         val value = java.net.URLDecoder.decode(v, StandardCharsets.UTF_8)
                         key to value
@@ -64,5 +58,4 @@ object UrlUtils {
             emptyList()
         }
     }
-
 }
