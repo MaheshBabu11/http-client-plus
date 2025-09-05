@@ -8,6 +8,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.util.ui.JBUI
@@ -18,8 +19,18 @@ import java.awt.Font
 import java.awt.FlowLayout
 import javax.swing.*
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.table.JBTable
+import java.awt.Component
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import javax.swing.table.DefaultTableCellRenderer
+import javax.swing.table.DefaultTableModel
 
 class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout()) {
     private val methodBox = ComboBox(arrayOf("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")).apply {
@@ -42,9 +53,12 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
     private val settingsSection = SettingsSection()
     private val envEditorSection = EnvEditorSection(project) { /* no-op: env selector removed */ }
     private val responseHandlerSection = ResponseHandlerSection()
-    private val savedRequestsSection = SavedRequestsSection(project) { data, vFile ->
-        loadRequestData(data, vFile)
-    }
+    private val savedRequestsSection = SavedRequestsSection(
+        project,
+        onRequestSelected = { data, vFile -> loadRequestData(data, vFile) },
+        onShowResponses = { requestName, saveDir -> showResponsesForRequest(requestName, saveDir) }
+    )
+    private val responseSaveSection = ResponseSection()
 
     private val nameField = JBTextField().apply {
         toolTipText = "Request name (used as file name)"
@@ -102,6 +116,82 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         mainPanel.add(buildTabsSection(), BorderLayout.CENTER)
         return mainPanel
     }
+
+    private fun showResponsesForRequest(collectionName: String, requestName: String) {
+        val baseDir = (project.basePath + "/http-client-plus/collections")
+        val collection = collectionName.replace(" ", "_")
+        val request = requestName.replace(" ", "_")
+        val responsesDir = File("$baseDir/$collection/$request")
+
+        if (!responsesDir.exists() || !responsesDir.isDirectory) {
+            JOptionPane.showMessageDialog(
+                this,
+                "No responses found for $requestName",
+                "Responses",
+                JOptionPane.INFORMATION_MESSAGE
+            )
+            return
+        }
+
+        val files = responsesDir.listFiles { f -> f.extension == "json" }
+            ?.sortedByDescending { it.lastModified() } ?: emptyList()
+
+        val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            .withZone(ZoneId.systemDefault())
+        val data = files.map {
+            arrayOf(it.name.substringBeforeLast('.'), formatter.format(Instant.ofEpochMilli(it.lastModified())))
+        }.toTypedArray()
+        val columns = arrayOf("File Name", "Last Modified")
+
+        val model = object : DefaultTableModel(data, columns) {
+            override fun isCellEditable(row: Int, column: Int) = false
+        }
+
+        val table = JBTable(model).apply {
+            preferredScrollableViewportSize = Dimension(600, 300)
+            rowHeight = 28
+            setShowGrid(true)
+            intercellSpacing = Dimension(1, 1)
+            font = font.deriveFont(Font.BOLD)
+            setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+            selectionForeground = JBColor.foreground()
+            selectionBackground = JBColor(0xE0E0E0, 0x454545)
+            setDefaultRenderer(Any::class.java, DateCellRenderer())
+        }
+        table.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
+                if (e.clickCount == 2 && e.button == MouseEvent.BUTTON1) {
+                    val row = table.selectedRow
+                    if (row >= 0) {
+                        val fileName = table.model.getValueAt(row, 0) as? String ?: return
+                        val file = File(responsesDir, "$fileName.json")
+                        val vFile = LocalFileSystem.getInstance()
+                            .findFileByIoFile(file) ?: return
+                        FileEditorManager.getInstance(project).openFile(vFile, true)
+                    }
+                }
+            }
+        })
+        responseSaveSection.showResponsesTable(table)
+
+        // Switch to Response tab
+        val idx = tabbedPane.indexOfTab("Response")
+        if (idx >= 0) tabbedPane.selectedIndex = idx
+    }
+
+    private inner class DateCellRenderer : DefaultTableCellRenderer() {
+        override fun getTableCellRendererComponent(
+            table: JTable, value: Any?, isSelected: Boolean,
+            hasFocus: Boolean, row: Int, column: Int
+        ): Component {
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
+            foreground = JBColor(0x666666, 0x999999)
+            horizontalAlignment = SwingConstants.LEFT
+            border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
+            return this
+        }
+    }
+
 
     private fun buildRequestBar(): JComponent {
         val requestPanel = JPanel(BorderLayout())
@@ -174,6 +264,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
             envEditorSection.component,
             "Environment variables"
         )
+        tabbedPane.addTab("Response", AllIcons.FileTypes.Json, responseSaveSection.component, "Response save options")
 
         return tabbedPane
     }
@@ -318,6 +409,14 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
 
         val httpVersionToken = settingsSection.httpVersionToken()
         val responseScript = responseHandlerSection.getScript()
+        val responseSavePath = responseSaveSection.buildPath(
+            name.replace(' ', '_'),
+            responseSaveSection.getCustomName()?.replace(' ', '_'),
+            responseSaveSection.isForceOverwrite()
+        )
+        val forceSave = responseSaveSection.isForceOverwrite()
+
+
 
         return HttpRequestData(
             method = method,
@@ -333,7 +432,9 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
             noCookieJar = settingsSection.isNoCookieJar(),
             noAutoEncoding = settingsSection.isNoAutoEncoding(),
             httpVersion = httpVersionToken,
-            responseHandlerScript = responseScript
+            responseHandlerScript = responseScript,
+            responseSavePath = responseSavePath,
+            forceSave = forceSave
         )
     }
 
@@ -345,6 +446,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         bodySection.clear()
         settingsSection.clear()
         responseHandlerSection.clear()
+        responseSaveSection.clear()
         currentRequestFile = vFile
 
         methodBox.selectedItem = data.method
@@ -384,6 +486,8 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
 
         // Response script
         responseHandlerSection.setScript(data.responseHandlerScript)
+
+        responseSaveSection.setPath(data.responseSavePath, data.forceSave)
     }
 
     fun clearUI() {
@@ -393,6 +497,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         bodySection.clear()
         settingsSection.clear()
         responseHandlerSection.clear()
+        responseSaveSection.clear()
         this.nameField.text = null
         this.urlField.text = null
         this.methodBox.selectedItem = "GET"

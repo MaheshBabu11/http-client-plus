@@ -37,7 +37,8 @@ import javax.swing.table.*
 
 class SavedRequestsSection(
     private val project: Project,
-    private val onRequestSelected: (HttpRequestData, VirtualFile) -> Unit
+    private val onRequestSelected: (HttpRequestData, VirtualFile) -> Unit,
+    private val onShowResponses: (String, String) -> Unit
 ) {
     val component: JComponent
     private val tableModel: DefaultTableModel
@@ -269,12 +270,25 @@ class SavedRequestsSection(
         }
     }
 
+
     // === Context Menu ===
     private fun showContextMenu(e: MouseEvent) {
         val popup = JPopupMenu().apply {
             add(JMenuItem("Open", AllIcons.Actions.Edit).apply { addActionListener { openSelectedFile() } })
             add(JMenuItem("Delete", AllIcons.General.Delete).apply { addActionListener { deleteSelectedFile() } })
             addSeparator()
+            add(JMenuItem("Show Responses", AllIcons.FileTypes.Json).apply {
+                addActionListener {
+                    val selectedRow = table.selectedRow
+                    if (selectedRow >= 0) {
+                        val modelRow = table.convertRowIndexToModel(selectedRow)
+                        val collection = tableModel.getValueAt(modelRow, 0)?.toString() ?: return@addActionListener
+                        val requestName = tableModel.getValueAt(modelRow, 1)?.toString() ?: return@addActionListener
+                        onShowResponses(collection, requestName)
+                    }
+                }
+            })
+
             add(JMenuItem("Show in Files", AllIcons.Actions.NewFolder).apply {
                 addActionListener {
                     getSelectedFile()?.let { vFile ->
@@ -296,19 +310,20 @@ class SavedRequestsSection(
         val collectionsDir = File(project.basePath, "http-client-plus/collections")
         if (collectionsDir.exists() && collectionsDir.isDirectory) {
             collectionsDir.listFiles { f -> f.isDirectory }?.forEach { collectionDir ->
-                collectionDir.listFiles { f -> f.isFile && f.extension == "http" }?.forEach { file ->
-                    val instant = Instant.ofEpochMilli(file.lastModified())
-                    lastModifiedInstants.add(instant)
-                    val method = parseHttpMethod(file)
-                    tableModel.addRow(
-                        arrayOf(
-                            collectionDir.name.replace("_", " "),
-                            file.name.replace("_", " ").substringBefore(".http"),
-                            method,
-                            formatter.format(instant)
+                collectionDir.listFiles { f -> f.isFile && f.extension == "http" }
+                    ?.forEach { file ->
+                        val instant = Instant.ofEpochMilli(file.lastModified())
+                        lastModifiedInstants.add(instant)
+                        val method = parseHttpMethod(file)
+                        tableModel.addRow(
+                            arrayOf(
+                                collectionDir.name.replace("_", " "),
+                                file.name.replace("_", " ").substringBefore(".http"),
+                                method,
+                                formatter.format(instant)
+                            )
                         )
-                    )
-                }
+                    }
             }
         }
     }
@@ -317,13 +332,19 @@ class SavedRequestsSection(
         runCatching {
             file.useLines { lines ->
                 lines.filterNot { it.isBlank() || it.trim().startsWith("#") || it.trim().startsWith("//") }
-                    .firstOrNull { it.matches(Regex("^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\\s+.*", RegexOption.IGNORE_CASE)) }
+                    .firstOrNull {
+                        it.matches(
+                            Regex(
+                                "^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\\s+.*",
+                                RegexOption.IGNORE_CASE
+                            )
+                        )
+                    }
                     ?.trim()
                     ?.substringBefore(" ")
                     ?.uppercase()
             } ?: "GET"
         }.getOrDefault("GET")
-
 
 
     private fun getSelectedFile(): VirtualFile? {
@@ -347,8 +368,16 @@ class SavedRequestsSection(
 
     private fun deleteSelectedFile() {
         val vFile = getSelectedFile() ?: return
-        ApplicationManager.getApplication().runWriteAction { vFile.delete(this) }
-        refreshList()
+        if (Messages.showYesNoDialog(
+                project,
+                "Delete this request?",
+                "Confirm Delete",
+                AllIcons.General.Delete
+            ) == Messages.YES
+        ) {
+            ApplicationManager.getApplication().runWriteAction { vFile.delete(this) }
+            refreshList()
+        }
     }
 
     private fun DefaultTableModel.findRowByValue(value: Any): Int {

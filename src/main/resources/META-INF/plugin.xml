@@ -2,7 +2,7 @@
     <id>dev.maheshbabu11.http-client-plus</id>
     <name>HTTP Client Plus</name>
     <vendor email="mahesh.b.pec@gmail.com" url="https://www.maheshbabu11.dev/">Mahesh Babu</vendor>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
     <idea-version since-build="242" until-build="252.*"/>
 
     <description><![CDATA[
@@ -29,6 +29,36 @@
           <li>Files are stored under <code>http-client-plus/collections</code> in your project.</li>
         </ul>
     ]]></description>
+
+    <change-notes>
+        <![CDATA[
+        <h2>1.0.5</h2>
+        <ul>
+          <li>Added support for Response File saving and viewing within the tool window.</li>
+          <li>Fixed an issue where the tool window might not open on the first attempt.</li>
+          <li>Improved error handling for file operations.</li>
+        </ul>
+        <h2>1.0.4</h2>
+        <ul>
+          <li>Added support for custom Content-Type headers in multipart form-data requests.</li>
+          <li>Improved UI responsiveness when switching between tabs.</li>
+        </ul>
+        <h2>1.0.3</h2>
+        <ul>
+          <li>Fixed a bug where the Params tab did not correctly append parameters to the URL.</li>
+          <li>Enhanced validation for the Name field to prevent invalid filenames.</li>
+        </ul>
+        <h2>1.0.2</h2>
+        <ul>
+          <li>Added a Beautify JSON option in the Body tab's overflow menu.</li>
+          <li>Improved error messages for failed HTTP requests.</li>
+        </ul>
+        <h2>1.0.1</h2>
+        <ul>
+          <li>Initial release with core features including method selector, URL field, Params/Headers/Body tabs, and file saving functionality.</li>
+        </ul>
+        ]]>
+    </change-notes>
 
     <depends>com.intellij.modules.platform</depends>
 

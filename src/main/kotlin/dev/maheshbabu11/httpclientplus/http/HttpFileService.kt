@@ -185,6 +185,15 @@ object HttpFileService {
             sb.append(script)
             if (sb.isEmpty() || sb[sb.length - 1] != '\n') sb.append('\n')
         }
+        if (!data.responseSavePath.isNullOrBlank()) {
+            if (data.forceSave) {
+                sb.append(">>! ")
+            } else {
+                sb.append(">> ")
+            }
+            sb.append(data.responseSavePath).append('\n')
+        }
+        sb.append('\n')
         return sb.toString()
     }
 
@@ -203,6 +212,8 @@ object HttpFileService {
             var noCookieJar = false
             var noAutoEncoding = false
             var inBody = false
+            var responseFileName: String? = null
+            var forceSave = false
 
             for (line in lines) {
                 when {
@@ -216,6 +227,18 @@ object HttpFileService {
                         url = parts.getOrNull(1) ?: ""
                         httpVersion = parts.getOrNull(2)
                     }
+
+                    line.startsWith(">>") -> {
+                        val path = line.removePrefix(">>").trim()
+                        forceSave = path.startsWith("!")
+                        responseFileName = path
+                            .removePrefix("!")
+                            .substringAfterLast('/')
+                            .substringBeforeLast('.')
+                            .substringBeforeLast('-')
+                    }
+
+
                     line.startsWith(">") -> responseScript = line
                     line.isBlank() -> inBody = true
                     !inBody -> {
@@ -224,9 +247,11 @@ object HttpFileService {
                             headers += line.substring(0, idx).trim() to line.substring(idx + 1).trim()
                         }
                     }
+
                     else -> bodyLines += line
                 }
             }
+
 
             val body = if (bodyLines.isNotEmpty()) bodyLines.joinToString("\n") else null
 
@@ -276,6 +301,7 @@ object HttpFileService {
                             if (line.endsWith("--")) break
                             inPart = true
                         }
+
                         inPart && line.startsWith("Content-Disposition:") -> {
                             val nameMatch = Regex("name=\"([^\"]+)\"").find(line)
                             currentName = nameMatch?.groupValues?.get(1)
@@ -285,12 +311,15 @@ object HttpFileService {
                                 isFile = true
                             }
                         }
+
                         inPart && line.startsWith("Content-Type:") -> {
                             currentContentType = line.removePrefix("Content-Type:").trim()
                         }
+
                         inPart && line.startsWith("< ") -> {
                             filePath = line.removePrefix("< ").trim()
                         }
+
                         inPart && line.isNotBlank() -> {
                             if (!isFile) valueBuffer.appendLine(line)
                         }
@@ -323,7 +352,10 @@ object HttpFileService {
                 noCookieJar = noCookieJar,
                 noAutoEncoding = noAutoEncoding,
                 httpVersion = httpVersion,
-                responseHandlerScript = responseScript
+                responseHandlerScript = responseScript,
+                responseSavePath = responseFileName,
+                forceSave = forceSave
+
             )
         } catch (_: Exception) {
             null
