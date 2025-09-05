@@ -205,6 +205,14 @@ class AuthorizationSection {
         when {
             value.startsWith("Basic ") -> {
                 typeBox.selectedItem = "Basic"
+                if (value.contains("{{") && value.contains("}}")) {
+                    // Contains variable placeholders; cannot decode
+                    val parts = value.removePrefix("Basic ").trim().split(" ", limit = 2)
+                    basicUserField.text = parts.getOrNull(0) ?: ""
+                    basicPassField.text = parts.getOrNull(1) ?: ""
+                    (cards.layout as CardLayout).show(cards, typeBox.selectedItem as String)
+                    return
+                }
                 val decoded = try {
                     String(Base64.getDecoder().decode(value.removePrefix("Basic ").trim()))
                 } catch (_: Exception) {

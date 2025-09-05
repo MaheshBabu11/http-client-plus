@@ -100,8 +100,6 @@ object HttpFileService {
         }
     }
 
-    // Render .http text without touching disk
-    fun renderHttpContent(data: HttpRequestData): String = buildHttpContent(data)
 
     private fun buildHttpContent(data: HttpRequestData): String {
         val sb = StringBuilder()
@@ -244,7 +242,7 @@ object HttpFileService {
                     !inBody -> {
                         val idx = line.indexOf(":")
                         if (idx > 0) {
-                            headers += line.substring(0, idx).trim() to line.substring(idx + 1).trim()
+                            headers += line.take(idx).trim() to line.substring(idx + 1).trim()
                         }
                     }
 
@@ -285,12 +283,8 @@ object HttpFileService {
                             filePath = if (isFile) filePath else null
                         )
                     }
-                    currentName = null
-                    currentFilename = null
-                    currentContentType = null
                     valueBuffer.clear()
                     isFile = false
-                    filePath = null
                 }
 
                 var inPart = false
