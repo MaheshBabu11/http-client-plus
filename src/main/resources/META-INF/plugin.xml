@@ -61,6 +61,7 @@
     </change-notes>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends optional="true" config-file="java.xml">com.intellij.modules.java</depends>
 
 
     <extensions defaultExtensionNs="com.intellij">

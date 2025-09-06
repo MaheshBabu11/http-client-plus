@@ -37,8 +37,7 @@ object UrlUtils {
 
     fun extractParams(url: String): List<Pair<String, String>> {
         return try {
-            val uri = URI(url)
-            val query = uri.rawQuery ?: return emptyList()
+            val query = url.substringAfter("?", "")
             query.split("&")
                 .mapNotNull { part ->
                     if (part.isBlank()) return@mapNotNull null
