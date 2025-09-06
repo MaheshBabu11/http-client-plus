@@ -4,6 +4,19 @@ A comprehensive Postman-like tool window for IntelliJ IDEA that lets you compose
 
 [![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/28340-http-client-plus)](https://plugins.jetbrains.com/plugin/28340-http-client-plus)
 
+## 📦 Installation
+
+### From JetBrains Marketplace
+<a href="https://plugins.jetbrains.com/plugin/28340-http-client-plus" target="_blank">
+    <img src="https://raw.githubusercontent.com/MaheshBabu11/http-client-plus/edad1fa78a729d8f54405d10d38c2572f82aa9f9/img/installation_button.svg" height="52" alt="Get from Marketplace" title="Get from Marketplace">
+</a>
+
+### Manual Installation
+1. Open IntelliJ IDEA
+2. Go to `File → Settings → Plugins`
+3. Search for "HTTP Client Plus"
+4. Click Install
+
 ## 🚀 Features
 
 ### Core Request Building
