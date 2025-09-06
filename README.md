@@ -19,6 +19,10 @@ Requirements
 - Built-in HTTP Client enabled (default)
 - JDK 17+ for building
 
+Usage Video
+
+[![Video Title](https://img.youtube.com/vi/q7APwIfE7Og/hqdefault.jpg)](https://www.youtube.com/watch?v=q7APwIfE7Og)
+
 Build and Run
 ```bash
 ./gradlew build
