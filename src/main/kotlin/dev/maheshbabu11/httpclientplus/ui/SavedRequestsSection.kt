@@ -15,8 +15,8 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
-import dev.maheshbabu11.httpclientplus.http.HttpFileService
-import dev.maheshbabu11.httpclientplus.http.HttpRequestData
+import dev.maheshbabu11.httpclientplus.service.HttpFileService
+import dev.maheshbabu11.httpclientplus.service.HttpRequestData
 import java.awt.*
 import java.awt.datatransfer.DataFlavor
 import java.awt.dnd.DnDConstants

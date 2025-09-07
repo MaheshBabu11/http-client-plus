@@ -15,7 +15,6 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiModifier
 import com.intellij.psi.PsiType
 import com.intellij.psi.util.PsiTreeUtil
-import dev.maheshbabu11.httpclientplus.http.HttpRequestData
 
 class RestControllerLineMarkerProvider : LineMarkerProvider {
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {

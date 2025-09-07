@@ -3,7 +3,7 @@ package dev.maheshbabu11.httpclientplus.ui
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
-import dev.maheshbabu11.httpclientplus.http.MultipartPart
+import dev.maheshbabu11.httpclientplus.service.MultipartPart
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Dimension

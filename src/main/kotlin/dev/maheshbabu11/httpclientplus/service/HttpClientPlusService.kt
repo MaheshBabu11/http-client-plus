@@ -3,7 +3,6 @@ package dev.maheshbabu11.httpclientplus.service
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindowManager
-import dev.maheshbabu11.httpclientplus.http.HttpRequestData
 import dev.maheshbabu11.httpclientplus.ui.HttpClientPlusPanel
 import javax.swing.SwingUtilities
 

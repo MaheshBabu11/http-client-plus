@@ -1,9 +1,9 @@
 package dev.maheshbabu11.httpclientplus.ui
 
 import com.intellij.icons.AllIcons
-import dev.maheshbabu11.httpclientplus.http.HttpFileService
-import dev.maheshbabu11.httpclientplus.http.HttpRequestData
-import dev.maheshbabu11.httpclientplus.http.MultipartPart
+import dev.maheshbabu11.httpclientplus.service.HttpFileService
+import dev.maheshbabu11.httpclientplus.service.HttpRequestData
+import dev.maheshbabu11.httpclientplus.service.MultipartPart
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
@@ -20,6 +20,7 @@ import java.awt.FlowLayout
 import javax.swing.*
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.table.JBTable
+import dev.maheshbabu11.httpclientplus.utils.UrlUtils
 import java.awt.Component
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
@@ -412,7 +413,8 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         val responseSavePath = responseSaveSection.buildPath(
             name.replace(' ', '_'),
             responseSaveSection.getCustomName()?.replace(' ', '_'),
-            responseSaveSection.isForceOverwrite()
+            responseSaveSection.isForceOverwrite(),
+            finalUrl
         )
         val forceSave = responseSaveSection.isForceOverwrite()
 

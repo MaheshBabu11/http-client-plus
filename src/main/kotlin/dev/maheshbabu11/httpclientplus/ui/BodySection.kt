@@ -12,7 +12,8 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.util.ui.JBUI
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import dev.maheshbabu11.httpclientplus.http.MultipartPart
+import dev.maheshbabu11.httpclientplus.service.MultipartPart
+import dev.maheshbabu11.httpclientplus.utils.JsonUtils
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.Font

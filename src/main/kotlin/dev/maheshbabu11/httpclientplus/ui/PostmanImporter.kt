@@ -3,8 +3,9 @@ package dev.maheshbabu11.httpclientplus.ui
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.intellij.openapi.project.Project
-import dev.maheshbabu11.httpclientplus.http.HttpRequestData
-import dev.maheshbabu11.httpclientplus.http.MultipartPart
+import dev.maheshbabu11.httpclientplus.service.HttpRequestData
+import dev.maheshbabu11.httpclientplus.service.MultipartPart
+import dev.maheshbabu11.httpclientplus.utils.UrlUtils
 import java.io.File
 import java.io.InputStream
 import java.util.Base64
