@@ -1,4 +1,4 @@
-package dev.maheshbabu11.httpclientplus.http
+package dev.maheshbabu11.httpclientplus.service
 
 data class HttpRequestData(
     val method: String,

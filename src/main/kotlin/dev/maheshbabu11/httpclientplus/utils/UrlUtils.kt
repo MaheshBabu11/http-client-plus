@@ -1,6 +1,6 @@
-package dev.maheshbabu11.httpclientplus.ui
+package dev.maheshbabu11.httpclientplus.utils
 
-import java.net.URI
+import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -45,11 +45,11 @@ object UrlUtils {
                     if (idx >= 0) {
                         val k = part.substring(0, idx)
                         val v = part.substring(idx + 1)
-                        val key = java.net.URLDecoder.decode(k, StandardCharsets.UTF_8)
-                        val value = java.net.URLDecoder.decode(v, StandardCharsets.UTF_8)
+                        val key = URLDecoder.decode(k, StandardCharsets.UTF_8)
+                        val value = URLDecoder.decode(v, StandardCharsets.UTF_8)
                         key to value
                     } else {
-                        val key = java.net.URLDecoder.decode(part, StandardCharsets.UTF_8)
+                        val key = URLDecoder.decode(part, StandardCharsets.UTF_8)
                         key to ""
                     }
                 }

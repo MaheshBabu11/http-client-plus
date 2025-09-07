@@ -1,4 +1,4 @@
-package dev.maheshbabu11.httpclientplus.http
+package dev.maheshbabu11.httpclientplus.service
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project

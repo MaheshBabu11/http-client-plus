@@ -1,4 +1,4 @@
-package dev.maheshbabu11.httpclientplus.ui
+package dev.maheshbabu11.httpclientplus.utils
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
@@ -16,4 +16,3 @@ object JsonUtils {
         return gson.toJson(element)
     }
 }
-
