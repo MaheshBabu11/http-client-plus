@@ -1,17 +1,83 @@
+
+/*
+ * Copyright 2025 MaheshBabu11
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package dev.maheshbabu11.httpclientplus.ui
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.ui.JBColor
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.panels.HorizontalLayout
+import com.intellij.ui.EditorTextField
 import com.intellij.util.ui.JBUI
-import com.intellij.openapi.ui.popup.JBPopupFactory
 import dev.maheshbabu11.httpclientplus.service.MultipartPart
 import dev.maheshbabu11.httpclientplus.utils.JsonUtils
 import java.awt.BorderLayout
@@ -31,15 +97,20 @@ class BodySection(project: Project) {
         )
     }
 
-    private val bodyArea = JBTextArea(12, 40).apply {
-        lineWrap = true
-        wrapStyleWord = true
+    private val jsonFileType = FileTypeManager.getInstance().getFileTypeByExtension("json")
+
+    // Use EditorTextField instead of JBTextArea for JSON syntax highlighting
+    private val bodyEditor = EditorTextField(null, project, jsonFileType, false).apply {
+        setOneLineMode(false)
+        font = Font(
+            EditorColorsManager.getInstance().globalScheme.editorFontName,
+            Font.PLAIN,
+            EditorColorsManager.getInstance().globalScheme.editorFontSize
+        )
         toolTipText = "Request body content"
-        val scheme = EditorColorsManager.getInstance().globalScheme
-        font = Font(scheme.editorFontName, Font.PLAIN, scheme.editorFontSize)
     }
 
-    private val bodyScrollPane = JBScrollPane(bodyArea)
+    private val bodyScrollPane = JBScrollPane(bodyEditor)
 
     private val multipartSection = MultipartSection(project)
 
@@ -57,9 +128,7 @@ class BodySection(project: Project) {
         isBorderPainted = false
         margin = JBUI.emptyInsets()
         preferredSize = JBUI.size(28, 28)
-        addActionListener {
-            showOverflowMenu()
-        }
+        addActionListener { showOverflowMenu() }
     }
 
     private val bodyCardLayout = CardLayout()
@@ -99,8 +168,7 @@ class BodySection(project: Project) {
     private fun toggleBodyMode() {
         val isMultipart = isMultipartSelected()
         bodyCardLayout.show(bodyContentPanel, if (isMultipart) "multipart" else "text")
-        bodyArea.isEnabled = !isMultipart
-        bodyArea.isEditable = !isMultipart
+        bodyEditor.isEnabled = !isMultipart
     }
 
     private fun showOverflowMenu() {
@@ -112,38 +180,33 @@ class BodySection(project: Project) {
         JBPopupFactory.getInstance()
             .createPopupChooserBuilder(actions.keys.toList())
             .setTitle("Actions")
-            .setItemChosenCallback { label ->
-                actions[label]?.invoke()
-            }
+            .setItemChosenCallback { label -> actions[label]?.invoke() }
             .createPopup()
             .showUnderneathOf(bodyOverflowButton)
     }
 
-
     private fun beautifyJsonBody() {
-        val raw = bodyArea.text
-        if (raw.isNullOrBlank()) return
+        val raw = bodyEditor.text
+        if (raw.isBlank()) return
         try {
-            val pretty = JsonUtils.prettyPrintJson(raw)
-            bodyArea.text = pretty
+            bodyEditor.text = JsonUtils.prettyPrintJson(raw)
         } catch (_: Exception) {
             Messages.showInfoMessage(component, "Invalid JSON - cannot beautify", "Beautify JSON")
         }
     }
 
     private fun minifyJsonBody() {
-        val raw = bodyArea.text
-        if (raw.isNullOrBlank()) return
+        val raw = bodyEditor.text
+        if (raw.isBlank()) return
         try {
-            val compact = JsonUtils.minifyJson(raw)
-            bodyArea.text = compact
+            bodyEditor.text = JsonUtils.minifyJson(raw)
         } catch (_: Exception) {
             Messages.showInfoMessage(component, "Invalid JSON - cannot minify", "Minify JSON")
         }
     }
 
     fun loadText(body: String?, headers: List<Pair<String, String>>) {
-        bodyArea.text = body ?: ""
+        bodyEditor.text = body ?: ""
         val ct = headers.firstOrNull { it.first.equals("Content-Type", true) }?.second
         contentTypeBox.selectedItem = ct ?: "application/json"
         toggleBodyMode()
@@ -156,7 +219,7 @@ class BodySection(project: Project) {
     }
 
     fun clear() {
-        bodyArea.text = ""
+        bodyEditor.text = ""
         contentTypeBox.selectedItem = "application/json"
         multipartSection.clear()
         toggleBodyMode()
@@ -164,22 +227,14 @@ class BodySection(project: Project) {
 
     private fun installContextMenu() {
         val popup = JPopupMenu()
-
-        val beautifyItem = JMenuItem("Beautify JSON")
-        beautifyItem.addActionListener { beautifyJsonBody() }
-        popup.add(beautifyItem)
-
-        val minifyItem = JMenuItem("Minify JSON")
-        minifyItem.addActionListener { minifyJsonBody() }
-        popup.add(minifyItem)
-
-        bodyArea.componentPopupMenu = popup
+        popup.add(JMenuItem("Beautify JSON").apply { addActionListener { beautifyJsonBody() } })
+        popup.add(JMenuItem("Minify JSON").apply { addActionListener { minifyJsonBody() } })
+        bodyEditor.componentPopupMenu = popup
     }
-
 
     fun selectedContentType(): String = (contentTypeBox.selectedItem as? String)?.trim().orEmpty()
     fun isMultipartSelected(): Boolean = selectedContentType().equals("multipart/form-data", true)
-    fun getBodyText(): String? = bodyArea.text.takeIf { it.isNotBlank() }
-    fun getBoundary(): String? = multipartSection.getBoundary()
+    fun getBodyText(): String? = bodyEditor.text.takeIf { it.isNotBlank() }
+    fun getBoundary(): String = multipartSection.getBoundary()
     fun getParts(): List<MultipartPart> = multipartSection.getParts()
 }

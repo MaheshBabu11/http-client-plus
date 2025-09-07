@@ -1,3 +1,52 @@
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package dev.maheshbabu11.httpclientplus.ui
 
 import com.intellij.icons.AllIcons
@@ -53,7 +102,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
     private val bodySection = BodySection(project)
     private val settingsSection = SettingsSection()
     private val envEditorSection = EnvEditorSection(project) { /* no-op: env selector removed */ }
-    private val responseHandlerSection = ResponseHandlerSection()
+    private val scriptHandlerSection = ScriptHandlerSection(project)
     private val savedRequestsSection = SavedRequestsSection(
         project,
         onRequestSelected = { data, vFile -> loadRequestData(data, vFile) },
@@ -255,7 +304,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         tabbedPane.addTab(
             "Scripts",
             AllIcons.Actions.Execute,
-            responseHandlerSection.component,
+            scriptHandlerSection.component,
             "Response handler scripts"
         )
         tabbedPane.addTab("Settings", AllIcons.General.GearPlain, settingsSection.component, "Request options")
@@ -409,7 +458,8 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         val saveDirPath = "http-client-plus/collections/$collection"
 
         val httpVersionToken = settingsSection.httpVersionToken()
-        val responseScript = responseHandlerSection.getScript()
+        val preScript = scriptHandlerSection.getPreScript()
+        val postScipt = scriptHandlerSection.getPostScript()
         val responseSavePath = responseSaveSection.buildPath(
             name.replace(' ', '_'),
             responseSaveSection.getCustomName()?.replace(' ', '_'),
@@ -434,7 +484,8 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
             noCookieJar = settingsSection.isNoCookieJar(),
             noAutoEncoding = settingsSection.isNoAutoEncoding(),
             httpVersion = httpVersionToken,
-            responseHandlerScript = responseScript,
+            preExecutionScript = preScript,
+            postExecutionScript = postScipt,
             responseSavePath = responseSavePath,
             forceSave = forceSave
         )
@@ -447,7 +498,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         authorizationSection.clear()
         bodySection.clear()
         settingsSection.clear()
-        responseHandlerSection.clear()
+        scriptHandlerSection.clear()
         responseSaveSection.clear()
         currentRequestFile = vFile
 
@@ -487,7 +538,8 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         settingsSection.loadSettings(data.noRedirect, data.noCookieJar, data.noAutoEncoding, data.httpVersion)
 
         // Response script
-        responseHandlerSection.setScript(data.responseHandlerScript)
+        scriptHandlerSection.setPostScript(data.postExecutionScript)
+        scriptHandlerSection.setPreScript(data.preExecutionScript)
 
         responseSaveSection.setPath(data.responseSavePath, data.forceSave)
     }
@@ -498,7 +550,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         authorizationSection.clear()
         bodySection.clear()
         settingsSection.clear()
-        responseHandlerSection.clear()
+        scriptHandlerSection.clear()
         responseSaveSection.clear()
         this.nameField.text = null
         this.urlField.text = null

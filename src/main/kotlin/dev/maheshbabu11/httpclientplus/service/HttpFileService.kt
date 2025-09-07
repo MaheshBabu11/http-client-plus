@@ -1,3 +1,52 @@
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package dev.maheshbabu11.httpclientplus.service
 
 import com.intellij.openapi.application.ApplicationManager
@@ -111,6 +160,12 @@ object HttpFileService {
         if (data.noCookieJar) sb.append("# @no-cookie-jar\n")
         if (data.noAutoEncoding) sb.append("# @no-auto-encoding\n")
 
+        data.preExecutionScript?.takeIf { it.isNotBlank() }?.let { script ->
+            if (!script.startsWith("<")) sb.append("< ")
+            sb.append(script)
+            if (sb.isEmpty() || sb[sb.length - 1] != '\n') sb.append('\n')
+        }
+
         val method = data.method.trim().uppercase().ifBlank { "GET" }
         sb.append(method).append(' ').append(data.url)
         val httpVersionToken = data.httpVersion?.takeIf { it.isNotBlank() }
@@ -167,7 +222,7 @@ object HttpFileService {
                 }
             }
             sb.append("--").append(effectiveBoundary).append("--\n")
-            data.responseHandlerScript?.takeIf { it.isNotBlank() }?.let { script ->
+            data.postExecutionScript?.takeIf { it.isNotBlank() }?.let { script ->
                 if (!script.startsWith(">")) sb.append("> ")
                 sb.append(script)
                 if (sb.isEmpty() || sb[sb.length - 1] != '\n') sb.append('\n')
@@ -178,7 +233,7 @@ object HttpFileService {
         if (!data.body.isNullOrBlank()) {
             sb.append(data.body).append('\n')
         }
-        data.responseHandlerScript?.takeIf { it.isNotBlank() }?.let { script ->
+        data.postExecutionScript?.takeIf { it.isNotBlank() }?.let { script ->
             if (!script.startsWith(">")) sb.append("> ")
             sb.append(script)
             if (sb.isEmpty() || sb[sb.length - 1] != '\n') sb.append('\n')
@@ -198,6 +253,7 @@ object HttpFileService {
     fun parseRequestFile(project: Project, vFile: VirtualFile): HttpRequestData? {
         return try {
             val lines = Files.readAllLines(Path.of(vFile.path), StandardCharsets.UTF_8)
+
             var name: String? = null
             var method = "GET"
             var url = ""
@@ -205,29 +261,71 @@ object HttpFileService {
             val headers = mutableListOf<Pair<String, String>>()
             val bodyLines = mutableListOf<String>()
             val multipartParts = mutableListOf<MultipartPart>()
-            var responseScript: String? = null
+            var preScript: String? = null
+            var postScript: String? = null
             var noRedirect = false
             var noCookieJar = false
             var noAutoEncoding = false
-            var inBody = false
             var responseFileName: String? = null
             var forceSave = false
 
-            for (line in lines) {
+            // Parsing state
+            var seenRequestLine = false
+            var inHeaders = false
+            var inBody = false
+
+            var collectingPre = false
+            var collectingPost = false
+            val preBuf = StringBuilder()
+            val postBuf = StringBuilder()
+
+            fun isMethodLine(t: String) =
+                Regex("^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\\s+", RegexOption.IGNORE_CASE).containsMatchIn(t)
+
+            fun endOfScript(line: String): Boolean =
+                line.trimEnd().endsWith("%}") || line.trim() == "%}"
+
+            for (raw in lines) {
+                val line = raw
+                val t = line.trimStart()
+
+                // If we're inside a script block, keep collecting until %} (inclusive)
+                if (collectingPre) {
+                    preBuf.appendLine(line)
+                    if (endOfScript(line)) {
+                        collectingPre = false
+                        preScript = preBuf.toString().trimEnd()
+                    }
+                    continue
+                }
+                if (collectingPost) {
+                    postBuf.appendLine(line)
+                    if (endOfScript(line)) {
+                        collectingPost = false
+                        postScript = postBuf.toString().trimEnd()
+                    }
+                    continue
+                }
+
                 when {
-                    line.startsWith("###") -> name = line.removePrefix("###").trim()
-                    line.startsWith("# @no-redirect") -> noRedirect = true
-                    line.startsWith("# @no-cookie-jar") -> noCookieJar = true
-                    line.startsWith("# @no-auto-encoding") -> noAutoEncoding = true
-                    Regex("^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\\s+").containsMatchIn(line) -> {
-                        val parts = line.split(" ")
-                        method = parts[0]
+                    t.startsWith("###") -> name = t.removePrefix("###").trim()
+
+                    t.startsWith("# @no-redirect") -> noRedirect = true
+                    t.startsWith("# @no-cookie-jar") -> noCookieJar = true
+                    t.startsWith("# @no-auto-encoding") -> noAutoEncoding = true
+
+                    isMethodLine(t) -> {
+                        val parts = t.split(Regex("\\s+"))
+                        method = parts[0].uppercase()
                         url = parts.getOrNull(1) ?: ""
                         httpVersion = parts.getOrNull(2)
+                        seenRequestLine = true
+                        inHeaders = true
+                        inBody = false
                     }
 
-                    line.startsWith(">>") -> {
-                        val path = line.removePrefix(">>").trim()
+                    t.startsWith(">>") -> {
+                        val path = t.removePrefix(">>").trim()
                         forceSave = path.startsWith("!")
                         responseFileName = path
                             .removePrefix("!")
@@ -236,20 +334,55 @@ object HttpFileService {
                             .substringBeforeLast('-')
                     }
 
-
-                    line.startsWith(">") -> responseScript = line
-                    line.isBlank() -> inBody = true
-                    !inBody -> {
-                        val idx = line.indexOf(":")
-                        if (idx > 0) {
-                            headers += line.take(idx).trim() to line.substring(idx + 1).trim()
+                    // Start of pre/post script blocks
+                    t.startsWith("<") -> {
+                        collectingPre = true
+                        preBuf.setLength(0)
+                        preBuf.appendLine(line)
+                        if (endOfScript(line)) { // one-liner case
+                            collectingPre = false
+                            preScript = preBuf.toString().trimEnd()
                         }
                     }
 
-                    else -> bodyLines += line
+                    t.startsWith(">") -> {
+                        collectingPost = true
+                        postBuf.setLength(0)
+                        postBuf.appendLine(line)
+                        if (endOfScript(line)) { // one-liner case
+                            collectingPost = false
+                            postScript = postBuf.toString().trimEnd()
+                        }
+                    }
+
+                    // Blank-line only flips to body after we've seen the request line and are in headers
+                    line.isBlank() -> {
+                        if (seenRequestLine && inHeaders) {
+                            inHeaders = false
+                            inBody = true
+                        }
+                        // else: ignore stray blank lines (e.g., above request or inside scripts handled earlier)
+                    }
+
+                    // Headers (before first blank after method line)
+                    inHeaders && !inBody -> {
+                        val idx = line.indexOf(':')
+                        if (idx > 0) {
+                            headers += line.substring(0, idx).trim() to line.substring(idx + 1).trim()
+                        }
+                    }
+
+                    // Body (after headers → body switch)
+                    inBody -> bodyLines += line
+
+                    // Anything else before the request line (comments/whitespace already handled): ignore
+                    else -> Unit
                 }
             }
 
+            // EOF: if a script block never closed, still use the collected content
+            if (collectingPre && preBuf.isNotEmpty()) preScript = preBuf.toString().trimEnd()
+            if (collectingPost && postBuf.isNotEmpty()) postScript = postBuf.toString().trimEnd()
 
             val body = if (bodyLines.isNotEmpty()) bodyLines.joinToString("\n") else null
 
@@ -257,13 +390,11 @@ object HttpFileService {
             val ctHeader = headers.firstOrNull { it.first.equals("Content-Type", true) }?.second
             var boundary: String? = null
             if (ctHeader != null && ctHeader.contains("multipart/form-data", true)) {
-                val regex = Regex("boundary=([^;]+)")
-                val match = regex.find(ctHeader)
-                boundary = match?.groupValues?.get(1)?.trim()
+                boundary = Regex("boundary=([^;]+)").find(ctHeader)?.groupValues?.get(1)?.trim()
             }
 
-            // Multipart parsing if boundary present
-            if (boundary != null) {
+            // Multipart parsing (use body lines only)
+            if (boundary != null && body != null) {
                 val parts = mutableListOf<MultipartPart>()
                 var currentName: String? = null
                 var currentFilename: String? = null
@@ -271,6 +402,9 @@ object HttpFileService {
                 val valueBuffer = StringBuilder()
                 var isFile = false
                 var filePath: String? = null
+                var inPart = false
+                var inPartHeaders = false
+                var inPartBody = false
 
                 fun flushPart() {
                     if (currentName != null) {
@@ -283,20 +417,30 @@ object HttpFileService {
                             filePath = if (isFile) filePath else null
                         )
                     }
-                    valueBuffer.clear()
+                    currentName = null
+                    currentFilename = null
+                    currentContentType = null
+                    valueBuffer.setLength(0)
                     isFile = false
+                    filePath = null
+                    inPartHeaders = false
+                    inPartBody = false
                 }
 
-                var inPart = false
-                for (line in lines) {
+                for (line in bodyLines) {
                     when {
                         line.startsWith("--$boundary") -> {
                             if (inPart) flushPart()
-                            if (line.endsWith("--")) break
+                            if (line.trimEnd().endsWith("--")) {
+                                inPart = false
+                                break
+                            }
                             inPart = true
+                            inPartHeaders = true
+                            inPartBody = false
                         }
 
-                        inPart && line.startsWith("Content-Disposition:") -> {
+                        inPart && inPartHeaders && line.startsWith("Content-Disposition:", ignoreCase = true) -> {
                             val nameMatch = Regex("name=\"([^\"]+)\"").find(line)
                             currentName = nameMatch?.groupValues?.get(1)
                             val fileMatch = Regex("filename=\"([^\"]+)\"").find(line)
@@ -306,15 +450,22 @@ object HttpFileService {
                             }
                         }
 
-                        inPart && line.startsWith("Content-Type:") -> {
+                        inPart && inPartHeaders && line.startsWith("Content-Type:", ignoreCase = true) -> {
                             currentContentType = line.removePrefix("Content-Type:").trim()
                         }
 
-                        inPart && line.startsWith("< ") -> {
+                        inPart && inPartHeaders && line.isBlank() -> {
+                            // End of part headers → body
+                            inPartHeaders = false
+                            inPartBody = true
+                        }
+
+                        inPart && inPartBody && line.startsWith("< ") -> {
+                            // file path reference syntax
                             filePath = line.removePrefix("< ").trim()
                         }
 
-                        inPart && line.isNotBlank() -> {
+                        inPart && inPartBody -> {
                             if (!isFile) valueBuffer.appendLine(line)
                         }
                     }
@@ -346,13 +497,14 @@ object HttpFileService {
                 noCookieJar = noCookieJar,
                 noAutoEncoding = noAutoEncoding,
                 httpVersion = httpVersion,
-                responseHandlerScript = responseScript,
+                preExecutionScript = preScript,
+                postExecutionScript = postScript,
                 responseSavePath = responseFileName,
                 forceSave = forceSave
-
             )
         } catch (_: Exception) {
             null
         }
     }
+
 }

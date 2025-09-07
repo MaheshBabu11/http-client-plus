@@ -19,7 +19,7 @@
           <li>Multipart form-data builder with boundary input and parts table (text or file) supporting Content-Type per part.</li>
           <li>For POST requests, automatically adds <code>Content-Type: application/json</code> if missing.</li>
           <li>Each Send saves or updates the <code>.http</code> file; the first Send opens it, later Sends refresh if already open.</li>
-          <li>No separate Save/Retry buttons — Send handles persistence only (execution is manual).</li>
+          <li>Support for pre and post-request scripts (JavaScript) for advanced request manipulation and response handling.</li>
         </ul>
         <b>Usage</b>
         <ul>
@@ -32,6 +32,14 @@
 
     <change-notes>
         <![CDATA[
+        <h2>1.0.6</h2>
+        <ul>
+            <li>Added support for pre-request and post-request scripts using JavaScript.</li>
+            <li>Added support for custom response saving locations via the Name field (e.g., <code>folder/filename.http</code>).</li>
+            <li>Improved handling of multipart form-data requests with better boundary management.</li>
+            <li>Fixed an issue where the Body tab's Content-Type selector did not update correctly
+                when switching between different body types.</li>
+        </ul>
         <h2>1.0.5</h2>
         <ul>
           <li>Added support for Response File saving and viewing within the tool window.</li>

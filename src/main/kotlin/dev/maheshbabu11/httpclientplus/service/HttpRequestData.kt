@@ -1,3 +1,52 @@
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2025 Mahesh Babu (MaheshBabu11)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package dev.maheshbabu11.httpclientplus.service
 
 data class HttpRequestData(
@@ -18,8 +67,10 @@ data class HttpRequestData(
     val noAutoEncoding: Boolean = false,
     // HTTP version to append to request line (e.g., "HTTP/2"); null = default (no version emitted)
     val httpVersion: String? = null,
+    // Optional pre-execution script to append before the request (e.g., "{% request.variables.set(...) %} ")
+    val preExecutionScript: String? = null,
     // Optional response handler script to append after the request (e.g., "> {% client.global.set(...) %}")
-    val responseHandlerScript: String? = null,
+    val postExecutionScript: String? = null,
     val responseSavePath: String? = null,
     val forceSave: Boolean = false
 )
