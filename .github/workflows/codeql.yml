@@ -8,7 +8,7 @@ on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
-  
+
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
@@ -42,9 +42,9 @@ jobs:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
 
-    # ⚡ Optimized build for IntelliJ Plugin
+    # ⚡ Compile Kotlin/Java sources only
     - if: matrix.build-mode == 'manual'
-      name: Compile Kotlin/Java sources for CodeQL
+      name: Compile sources with Gradle (skip unnecessary tasks)
       run: |
         chmod +x gradlew
         ./gradlew clean classes --no-daemon \
@@ -56,7 +56,28 @@ jobs:
           -x verifyPluginConfiguration \
           -PskipInstrumentCode=true
 
+    # 🔹 Perform CodeQL analysis and save SARIF
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
         category: "/language:${{matrix.language}}"
+        output: results.sarif
+
+    # 🔹 Convert SARIF to HTML for easy viewing
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install SARIF-HTML converter
+      run: pip install sarif-html
+
+    - name: Generate HTML report
+      run: sarif-html results.sarif results.html
+
+    # 🔹 Upload HTML report as artifact
+    - name: Upload HTML report
+      uses: actions/upload-artifact@v4
+      with:
+        name: codeql-report
+        path: results.html
