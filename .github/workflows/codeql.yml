@@ -24,7 +24,7 @@ jobs:
       matrix:
         include:
         - language: java-kotlin
-          build-mode: manual   # 🔧 changed from autobuild → manual
+          build-mode: manual   # manual mode to specify build steps
 
     steps:
     - name: Checkout repository
@@ -42,12 +42,16 @@ jobs:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
 
-    # ⚡ Optimized build for IntelliJ Plugin project
+    # ⚡ Optimized manual build for IntelliJ Plugin
     - if: matrix.build-mode == 'manual'
-      name: Compile sources with Gradle (skip tests & verifier)
+      name: Compile sources with Gradle (skip tests & plugin verifier)
       run: |
         chmod +x gradlew
-        ./gradlew clean classes --no-daemon -x test -x verifyPlugin -x runPluginVerifier
+        ./gradlew clean classes --no-daemon \
+          -x test \
+          -x verifyPlugin \
+          -x runPluginVerifier \
+          -x verifyPluginConfiguration
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
