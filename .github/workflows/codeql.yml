@@ -8,11 +8,11 @@ on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
-  
+
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     permissions:
       security-events: write
       packages: read
@@ -24,7 +24,7 @@ jobs:
       matrix:
         include:
         - language: java-kotlin
-          build-mode: manual   # 🔧 changed from autobuild → manual
+          build-mode: manual
 
     steps:
     - name: Checkout repository
@@ -42,14 +42,29 @@ jobs:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
 
-    # ⚡ Optimized build for IntelliJ Plugin project
+    # ⚡ Compile Kotlin/Java sources only
     - if: matrix.build-mode == 'manual'
-      name: Compile sources with Gradle (skip tests & verifier)
+      name: Compile sources with Gradle (skip unnecessary tasks)
       run: |
         chmod +x gradlew
-        ./gradlew clean classes --no-daemon -x test -x verifyPlugin -x runPluginVerifier
+        ./gradlew clean classes --no-daemon \
+          -Dkotlin.compiler.execution.strategy=in-process \
+          -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=512m" \
+          -x test \
+          -x verifyPlugin \
+          -x runPluginVerifier \
+          -x verifyPluginConfiguration \
+          -PskipInstrumentCode=true
 
+    # 🔹 Perform CodeQL analysis and save SARIF
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
         category: "/language:${{matrix.language}}"
+        output: results.sarif
+
+    - name: Upload Sarif result
+      uses: actions/upload-artifact@v4
+      with:
+        name: codeql-report
+        path: results.sarif
