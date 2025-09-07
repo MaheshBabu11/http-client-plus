@@ -12,7 +12,7 @@ on:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     permissions:
       security-events: write
       packages: read
@@ -24,7 +24,7 @@ jobs:
       matrix:
         include:
         - language: java-kotlin
-          build-mode: manual   # manual mode to specify build steps
+          build-mode: manual
 
     steps:
     - name: Checkout repository
@@ -42,16 +42,19 @@ jobs:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
 
-    # ⚡ Optimized manual build for IntelliJ Plugin
+    # ⚡ Optimized build for IntelliJ Plugin
     - if: matrix.build-mode == 'manual'
-      name: Compile sources with Gradle (skip tests & plugin verifier)
+      name: Compile Kotlin/Java sources for CodeQL
       run: |
         chmod +x gradlew
         ./gradlew clean classes --no-daemon \
+          -Dkotlin.compiler.execution.strategy=in-process \
+          -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=512m" \
           -x test \
           -x verifyPlugin \
           -x runPluginVerifier \
-          -x verifyPluginConfiguration
+          -x verifyPluginConfiguration \
+          -PskipInstrumentCode=true
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
