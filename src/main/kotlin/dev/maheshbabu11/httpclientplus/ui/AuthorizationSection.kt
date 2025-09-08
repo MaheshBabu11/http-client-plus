@@ -29,13 +29,27 @@ import com.intellij.openapi.ui.ComboBox
 import java.awt.Component
 
 class AuthorizationSection {
+
+    companion object {
+        private const val TYPE_NONE = "None"
+        private const val TYPE_BASIC = "Basic"
+        private const val TYPE_BEARER = "Bearer token"
+        private const val TYPE_DIGEST = "Digest"
+        private const val TYPE_CUSTOM = "Custom header"
+
+        private const val HEADER_AUTHORIZATION = "Authorization"
+        private const val PREFIX_BASIC = "Basic "
+        private const val PREFIX_BEARER = "Bearer "
+        private const val PREFIX_DIGEST = "Digest "
+    }
+
     private val typeBox = ComboBox(
         arrayOf(
-            "None",
-            "Basic",
-            "Bearer token",
-            "Digest",
-            "Custom header"
+            TYPE_NONE,
+            TYPE_BASIC,
+            TYPE_BEARER,
+            TYPE_DIGEST,
+            TYPE_CUSTOM
         )
     )
 
@@ -47,7 +61,7 @@ class AuthorizationSection {
     private val digestUserField = JBTextField()
     private val digestPassField = JBTextField()
 
-    private val customKeyField = JBTextField("Authorization")
+    private val customKeyField = JBTextField(HEADER_AUTHORIZATION)
     private val customValueField = JBTextField()
 
     private val cards = JPanel(CardLayout())
@@ -56,7 +70,7 @@ class AuthorizationSection {
         border = JBUI.Borders.empty(10)
 
         val typeBoxPreferredHeight = 32
-        val typeBoxPreferredWidth = 220 // or use typeBox.preferredSize.width for default
+        val typeBoxPreferredWidth = 220
 
         typeBox.maximumSize = Dimension(typeBoxPreferredWidth, typeBoxPreferredHeight)
         typeBox.preferredSize = Dimension(typeBoxPreferredWidth, typeBoxPreferredHeight)
@@ -69,24 +83,22 @@ class AuthorizationSection {
             add(Box.createHorizontalStrut(8))
             add(typeBox.apply { alignmentY = Component.CENTER_ALIGNMENT })
         }
+
         // Build cards
-        cards.add(buildNonePanel(), "None")
-        cards.add(buildBasicPanel(), "Basic")
-        cards.add(buildBearerPanel(), "Bearer token")
-        cards.add(buildDigestPanel(), "Digest")
-        cards.add(buildCustomPanel(), "Custom header")
+        cards.add(buildNonePanel(), TYPE_NONE)
+        cards.add(buildBasicPanel(), TYPE_BASIC)
+        cards.add(buildBearerPanel(), TYPE_BEARER)
+        cards.add(buildDigestPanel(), TYPE_DIGEST)
+        cards.add(buildCustomPanel(), TYPE_CUSTOM)
 
-
-        /// Place top and cards into a single vertical container
         val content = JPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
             border = JBUI.Borders.empty()
 
             top.alignmentX = JComponent.LEFT_ALIGNMENT
             add(top)
-            add(Box.createVerticalStrut(8)) // Small gap between selector and cards
+            add(Box.createVerticalStrut(8))
 
-            // Wrap cards so they stay at the top instead of stretching
             val cardWrapper = JPanel(BorderLayout()).apply {
                 add(cards, BorderLayout.NORTH)
             }
@@ -98,7 +110,7 @@ class AuthorizationSection {
         typeBox.addActionListener {
             (cards.layout as CardLayout).show(cards, typeBox.selectedItem as String)
         }
-        // Initialize card
+
         (cards.layout as CardLayout).show(cards, typeBox.selectedItem as String)
     }
 
@@ -165,45 +177,39 @@ class AuthorizationSection {
 
     fun getAuthorizationHeader(): Pair<String, String>? {
         return when (typeBox.selectedItem as String) {
-            "None" -> null
-            "Basic" -> {
+            TYPE_NONE -> null
+            TYPE_BASIC -> {
                 val user = basicUserField.text.orEmpty().trim()
                 val pass = basicPassField.text.orEmpty().trim()
                 if (user.isEmpty() && pass.isEmpty()) return null
                 val usesVars = isVarPlaceholder(user) || isVarPlaceholder(pass)
                 if (usesVars) {
-                    // Keep tokens as-is; JetBrains HTTP Client will substitute variables
-                    val u = if (isVarPlaceholder(user)) user else user
-                    val p = if (isVarPlaceholder(pass)) pass else pass
-                    "Authorization" to "Basic $u $p"
+                    HEADER_AUTHORIZATION to "${PREFIX_BASIC.trim()} $user $pass"
                 } else {
                     val token = Base64.getEncoder().encodeToString("$user:$pass".toByteArray())
-                    "Authorization" to "Basic $token"
+                    HEADER_AUTHORIZATION to "$PREFIX_BASIC$token"
                 }
             }
 
-            "Bearer token" -> {
+            TYPE_BEARER -> {
                 val token = bearerTokenField.text.trim()
                 if (token.isEmpty()) return null
-                "Authorization" to "Bearer $token"
+                HEADER_AUTHORIZATION to "$PREFIX_BEARER$token"
             }
 
-            "Digest" -> {
+            TYPE_DIGEST -> {
                 val user = digestUserField.text.orEmpty().trim()
                 val pass = digestPassField.text.orEmpty().trim()
                 if (user.isEmpty() && pass.isEmpty()) return null
                 val usesVars = isVarPlaceholder(user) || isVarPlaceholder(pass)
                 if (usesVars) {
-                    val u = user
-                    val p = pass
-                    "Authorization" to "Digest $u $p"
+                    HEADER_AUTHORIZATION to "$PREFIX_DIGEST$user $pass"
                 } else {
-                    // JetBrains HTTP Client supports shorthand; actual hashing happens on server challenge
-                    "Authorization" to "Digest $user $pass"
+                    HEADER_AUTHORIZATION to "$PREFIX_DIGEST$user $pass"
                 }
             }
 
-            "Custom header" -> {
+            TYPE_CUSTOM -> {
                 val key = customKeyField.text.trim()
                 val value = customValueField.text.trim()
                 if (key.isEmpty() || value.isEmpty()) return null
@@ -215,44 +221,42 @@ class AuthorizationSection {
     }
 
     fun setFromHeader(headers: List<Pair<String, String>>) {
-        val auth = headers.firstOrNull { it.first.equals("Authorization", true) } ?: return
+        val auth = headers.firstOrNull { it.first.equals(HEADER_AUTHORIZATION, true) } ?: return
         val value = auth.second
 
         when {
-            value.startsWith("Basic ") -> {
-                typeBox.selectedItem = "Basic"
+            value.startsWith(PREFIX_BASIC) -> {
+                typeBox.selectedItem = TYPE_BASIC
                 if (value.contains("{{") && value.contains("}}")) {
-                    // Contains variable placeholders; cannot decode
-                    val parts = value.removePrefix("Basic ").trim().split(" ", limit = 2)
+                    val parts = value.removePrefix(PREFIX_BASIC).trim().split(" ", limit = 2)
                     basicUserField.text = parts.getOrNull(0) ?: ""
                     basicPassField.text = parts.getOrNull(1) ?: ""
-                    (cards.layout as CardLayout).show(cards, typeBox.selectedItem as String)
-                    return
+                } else {
+                    val decoded = try {
+                        String(Base64.getDecoder().decode(value.removePrefix(PREFIX_BASIC).trim()))
+                    } catch (_: Exception) {
+                        ""
+                    }
+                    val parts = decoded.split(":", limit = 2)
+                    basicUserField.text = parts.getOrNull(0) ?: ""
+                    basicPassField.text = parts.getOrNull(1) ?: ""
                 }
-                val decoded = try {
-                    String(Base64.getDecoder().decode(value.removePrefix("Basic ").trim()))
-                } catch (_: Exception) {
-                    ""
-                }
-                val parts = decoded.split(":", limit = 2)
-                basicUserField.text = parts.getOrNull(0) ?: ""
-                basicPassField.text = parts.getOrNull(1) ?: ""
             }
 
-            value.startsWith("Bearer ") -> {
-                typeBox.selectedItem = "Bearer token"
-                bearerTokenField.text = value.removePrefix("Bearer ").trim()
+            value.startsWith(PREFIX_BEARER) -> {
+                typeBox.selectedItem = TYPE_BEARER
+                bearerTokenField.text = value.removePrefix(PREFIX_BEARER).trim()
             }
 
-            value.startsWith("Digest ") -> {
-                typeBox.selectedItem = "Digest"
-                val creds = value.removePrefix("Digest ").trim().split(" ")
+            value.startsWith(PREFIX_DIGEST) -> {
+                typeBox.selectedItem = TYPE_DIGEST
+                val creds = value.removePrefix(PREFIX_DIGEST).trim().split(" ")
                 digestUserField.text = creds.getOrNull(0) ?: ""
                 digestPassField.text = creds.getOrNull(1) ?: ""
             }
 
             else -> {
-                typeBox.selectedItem = "Custom header"
+                typeBox.selectedItem = TYPE_CUSTOM
                 customKeyField.text = auth.first
                 customValueField.text = auth.second
             }
@@ -261,7 +265,7 @@ class AuthorizationSection {
     }
 
     fun clear() {
-        typeBox.selectedItem = "None"
+        typeBox.selectedItem = TYPE_NONE
         basicUserField.text = ""
         basicPassField.text = ""
         bearerTokenField.text = ""
@@ -269,7 +273,6 @@ class AuthorizationSection {
         digestPassField.text = ""
         customKeyField.text = ""
         customValueField.text = ""
-        (cards.layout as CardLayout).show(cards, "None")
+        (cards.layout as CardLayout).show(cards, TYPE_NONE)
     }
-
 }
