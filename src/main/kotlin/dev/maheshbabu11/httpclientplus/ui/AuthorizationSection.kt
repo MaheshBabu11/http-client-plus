@@ -201,12 +201,7 @@ class AuthorizationSection {
                 val user = digestUserField.text.orEmpty().trim()
                 val pass = digestPassField.text.orEmpty().trim()
                 if (user.isEmpty() && pass.isEmpty()) return null
-                val usesVars = isVarPlaceholder(user) || isVarPlaceholder(pass)
-                if (usesVars) {
-                    HEADER_AUTHORIZATION to "$PREFIX_DIGEST$user $pass"
-                } else {
-                    HEADER_AUTHORIZATION to "$PREFIX_DIGEST$user $pass"
-                }
+                HEADER_AUTHORIZATION to "$PREFIX_DIGEST$user $pass"
             }
 
             TYPE_CUSTOM -> {
