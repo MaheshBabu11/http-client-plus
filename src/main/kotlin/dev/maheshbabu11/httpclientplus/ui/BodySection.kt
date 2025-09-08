@@ -50,7 +50,6 @@ class BodySection(project: Project) {
 
     private val jsonFileType = FileTypeManager.getInstance().getFileTypeByExtension("json")
 
-    // Use EditorTextField instead of JBTextArea for JSON syntax highlighting
     private val bodyEditor = EditorTextField(null, project, jsonFileType, false).apply {
         setOneLineMode(false)
         font = Font(

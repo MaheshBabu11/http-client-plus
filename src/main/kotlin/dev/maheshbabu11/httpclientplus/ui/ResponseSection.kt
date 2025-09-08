@@ -118,15 +118,28 @@ class ResponseSection {
 
 
     // Build the relative path using the http file base name and optional custom name
-    fun buildPath(httpFileBaseName: String, customName: String?, forceOverwrite: Boolean, finalUrl: String): String {
+    fun buildPath(
+        httpFileBaseName: String,
+        customName: String?,
+        forceOverwrite: Boolean,
+        finalUrl: String
+    ): String {
         val safeBase = httpFileBaseName.trim().ifBlank { "request" }
         val custom = customName?.trim().orEmpty()
         val ts = if (forceOverwrite) "" else "-{{\$timestamp}}"
-        val rawExt = finalUrl.substringAfterLast('.', "json")
-        val extension = rawExt.ifBlank { "json" }
-        val fileName = if (custom.isEmpty()) "response$ts.$extension" else "$custom$ts.$extension"
-        return "$safeBase/$fileName"
+        val allowedExts = setOf("jpg", "pdf", "png", "txt", "xml", "html", "csv", "json", "zip", "bin", "webp", "gif")
+        val cleanUrl = finalUrl.substringBefore('?').substringBefore('#')
+        val lastSegment = cleanUrl.substringAfterLast('/')
+        val ext = lastSegment.substringAfterLast('.', "").lowercase()
+        val extension = if (ext in allowedExts) ext else "json"
+        val fileName = if (custom.isEmpty()) {
+            "response$ts.$extension"
+        } else {
+            "$custom$ts.$extension"
+        }
 
+        return "$safeBase/$fileName"
     }
+
 
 }
