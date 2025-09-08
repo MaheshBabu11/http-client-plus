@@ -32,36 +32,37 @@
 
     <change-notes>
         <![CDATA[
-        <h2>1.0.6</h2>
+        <h3>1.0.6</h3>
         <ul>
             <li>Added support for pre-request and post-request scripts using JavaScript.</li>
             <li>Added support for custom response saving locations via the Name field (e.g., <code>folder/filename.http</code>).</li>
+            <li>Added request mapping from rest controllers in Spring Boot projects to quickly create requests based on existing endpoints.</li>
             <li>Improved handling of multipart form-data requests with better boundary management.</li>
             <li>Fixed an issue where the Body tab's Content-Type selector did not update correctly
                 when switching between different body types.</li>
         </ul>
-        <h2>1.0.5</h2>
+        <h3>1.0.5</h3>
         <ul>
           <li>Added support for Response File saving and viewing within the tool window.</li>
           <li>Fixed an issue where the tool window might not open on the first attempt.</li>
           <li>Improved error handling for file operations.</li>
         </ul>
-        <h2>1.0.4</h2>
+        <h3>1.0.4</h3>
         <ul>
           <li>Added support for custom Content-Type headers in multipart form-data requests.</li>
           <li>Improved UI responsiveness when switching between tabs.</li>
         </ul>
-        <h2>1.0.3</h2>
+        <h3>1.0.3</h3>
         <ul>
           <li>Fixed a bug where the Params tab did not correctly append parameters to the URL.</li>
           <li>Enhanced validation for the Name field to prevent invalid filenames.</li>
         </ul>
-        <h2>1.0.2</h2>
+        <h3>1.0.2</h3>
         <ul>
           <li>Added a Beautify JSON option in the Body tab's overflow menu.</li>
           <li>Improved error messages for failed HTTP requests.</li>
         </ul>
-        <h2>1.0.1</h2>
+        <h3>1.0.1</h3>
         <ul>
           <li>Initial release with core features including method selector, URL field, Params/Headers/Body tabs, and file saving functionality.</li>
         </ul>
