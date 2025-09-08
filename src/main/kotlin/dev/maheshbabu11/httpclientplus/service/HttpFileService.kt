@@ -417,12 +417,8 @@ object HttpFileService {
                             filePath = if (isFile) filePath else null
                         )
                     }
-                    currentName = null
-                    currentFilename = null
-                    currentContentType = null
                     valueBuffer.setLength(0)
                     isFile = false
-                    filePath = null
                     inPartHeaders = false
                     inPartBody = false
                 }
@@ -432,7 +428,6 @@ object HttpFileService {
                         line.startsWith("--$boundary") -> {
                             if (inPart) flushPart()
                             if (line.trimEnd().endsWith("--")) {
-                                inPart = false
                                 break
                             }
                             inPart = true
