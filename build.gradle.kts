@@ -1,6 +1,13 @@
 plugins {
     kotlin("jvm") version "2.2.0"
     id("org.jetbrains.intellij") version "1.17.3"
+    id("org.sonarqube") version "6.3.1.5724"
+}
+sonar {
+    properties {
+        property("sonar.projectKey", "MaheshBabu11_http-client-plus")
+        property("sonar.organization", "maheshbabu11")
+    }
 }
 
 group = "dev.maheshbabu11"
