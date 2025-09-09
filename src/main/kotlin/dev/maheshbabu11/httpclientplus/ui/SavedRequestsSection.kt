@@ -379,7 +379,7 @@ class SavedRequestsSection(
         val vFile = getSelectedFile() ?: return
         val data = HttpFileService.parseRequestFile(project, vFile) ?: return
         onRequestSelected(data, vFile)
-        FileEditorManager.getInstance(project).openFile(vFile, true)
+       // FileEditorManager.getInstance(project).openFile(vFile, true)
     }
 
     private fun deleteSelectedFile() {

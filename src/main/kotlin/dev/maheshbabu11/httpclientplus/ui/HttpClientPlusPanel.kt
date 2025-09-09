@@ -287,14 +287,15 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
                     val caretOffset = editor?.caretModel?.offset
                     val scrollOffset = editor?.scrollingModel?.verticalScrollOffset
                     fem.closeFile(updated)
-                    fem.openFile(updated, true)
+                    // fem.openFile(updated, true)
                     val newEditor = fem.selectedTextEditor
                     if (caretOffset != null) newEditor?.caretModel?.moveToOffset(caretOffset)
                     if (scrollOffset != null) newEditor?.scrollingModel?.scrollVertically(scrollOffset)
                 } else {
-                    fem.openFile(updated, true)
+                    // fem.openFile(updated, true)
                 }
                 // Update Run tab
+                FileDocumentManager.getInstance().reloadFiles(updated)
                 runHttpFileSection.showFile(updated)
                 val idx = tabbedPane.indexOfTab("Run")
                 if (idx >= 0) tabbedPane.selectedIndex = idx
@@ -313,8 +314,9 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
                 )
             } else {
                 currentRequestFile = vFile
-                fem.openFile(vFile, true)
+                //fem.openFile(vFile, true)
                 // Update Run tab
+                FileDocumentManager.getInstance().reloadFiles(vFile)
                 runHttpFileSection.showFile(vFile)
                 val idx = tabbedPane.indexOfTab("Run")
                 if (idx >= 0) tabbedPane.selectedIndex = idx
@@ -331,9 +333,10 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
                 if (isOpen) {
                     FileDocumentManager.getInstance().reloadFiles(updated)
                 } else {
-                    fem.openFile(updated, true)
+                    // fem.openFile(updated, true)
                 }
                 // Update Run tab
+                FileDocumentManager.getInstance().reloadFiles(updated)
                 runHttpFileSection.showFile(updated)
                 val idx = tabbedPane.indexOfTab("Run")
                 if (idx >= 0) tabbedPane.selectedIndex = idx
@@ -499,6 +502,8 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         } else {
             bodySection.loadText(data.body, data.headers)
         }
+        val idx = tabbedPane.indexOfTab("Run")
+        if (idx >= 0) tabbedPane.selectedIndex = idx
 
         // Settings
         settingsSection.loadSettings(data.noRedirect, data.noCookieJar, data.noAutoEncoding, data.httpVersion)

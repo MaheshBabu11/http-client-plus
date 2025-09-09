@@ -17,6 +17,7 @@
 package dev.maheshbabu11.httpclientplus.service
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -85,11 +86,30 @@ object HttpFileService {
     fun updateRequestFile(project: Project, vFile: VirtualFile, data: HttpRequestData): VirtualFile? {
         return try {
             val content = buildHttpContent(data)
-            val path = Path.of(vFile.path)
-            Files.writeString(path, content, StandardCharsets.UTF_8)
-            LocalFileSystem.getInstance().refreshAndFindFileByPath(path.toString())?.also { refreshed ->
-                ApplicationManager.getApplication().runReadAction {
-                    PsiManager.getInstance(project).findFile(refreshed)
+            val docManager = FileDocumentManager.getInstance()
+            val document = docManager.getDocument(vFile)
+
+            if (document != null) {
+                // Update through the Document so all open editors (including our embedded one) refresh immediately
+                ApplicationManager.getApplication().runWriteAction {
+                    document.setText(content)
+                }
+                docManager.saveDocument(document)
+                // Optionally refresh VFS attributes (timestamps) without reloading content we just set
+                vFile.refresh(false, false)
+                vFile.also { refreshed ->
+                    ApplicationManager.getApplication().runReadAction {
+                        PsiManager.getInstance(project).findFile(refreshed)
+                    }
+                }
+            } else {
+                // No cached Document (file not open). Update on disk then refresh VFS
+                val path = Path.of(vFile.path)
+                Files.writeString(path, content, StandardCharsets.UTF_8)
+                LocalFileSystem.getInstance().refreshAndFindFileByPath(path.toString())?.also { refreshed ->
+                    ApplicationManager.getApplication().runReadAction {
+                        PsiManager.getInstance(project).findFile(refreshed)
+                    }
                 }
             }
         } catch (_: Exception) {

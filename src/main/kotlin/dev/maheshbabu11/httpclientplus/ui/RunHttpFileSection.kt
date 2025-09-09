@@ -2,12 +2,10 @@ package dev.maheshbabu11.httpclientplus.ui
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import javax.swing.JComponent
@@ -15,12 +13,13 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 
 /**
- * Shows the saved .http file content and provides a gutter icon to run it.
- * Uses a full editor instance to ensure gutter icons render correctly.
+ * Shows the saved .http file content inside the Run tab panel.
+ * Uses a full editor instance without opening a tab in the main editor.
  */
 class RunHttpFileSection(private val project: Project) {
 
     private var currentFile: VirtualFile? = null
+    private var editor: Editor? = null
 
     private val infoLabel = JLabel("Save the request to preview and run it here.")
 
@@ -32,47 +31,52 @@ class RunHttpFileSection(private val project: Project) {
         add(editorPanel, BorderLayout.CENTER)
     }
 
-    private var editor: Editor? = null
-
     /**
-     * Load and display a .http file using a full editor.
+     * Load and display a .http file in the embedded editor.
+     * Does NOT open a tab in the main editor.
      */
     fun showFile(vFile: VirtualFile) {
         currentFile = vFile
 
-        // Step 1: read document safely
+        // Step 1: read document safely (also forces Document creation for this file)
         val docText = ApplicationManager.getApplication().runReadAction<String?> {
-            val doc = FileDocumentManager.getInstance().getDocument(vFile)
-            doc?.text
+            FileDocumentManager.getInstance().getDocument(vFile)?.text
         }
 
         if (docText == null) {
             infoLabel.text = "Unable to load file: ${vFile.name}"
+            infoLabel.isVisible = true
             return
         }
 
-        // Step 2: create/open full editor and attach gutter icon
+        // Step 2: create editor component without opening main tab
         ApplicationManager.getApplication().invokeLater {
-            val fem = FileEditorManager.getInstance(project)
-            val openEditor = fem.openTextEditor(OpenFileDescriptor(project, vFile), false)
-            if (openEditor != null) {
-                editor = openEditor
-                editorPanel.removeAll()
-                editorPanel.add(JBScrollPane(openEditor.component), BorderLayout.CENTER)
-                editorPanel.revalidate()
-                editorPanel.repaint()
-            }
+            // Dispose previous editor if exists
+            editor?.let { EditorFactory.getInstance().releaseEditor(it) }
+            val document = FileDocumentManager.getInstance().getDocument(vFile) ?: return@invokeLater
+            editor = EditorFactory.getInstance().createEditor(document, project, vFile.fileType, false)
+
+            editorPanel.removeAll()
+            // Editor is already scrollable; embed directly
+            editorPanel.add(editor!!.component, BorderLayout.CENTER)
+            infoLabel.isVisible = false
+            editorPanel.revalidate()
+            editorPanel.repaint()
         }
     }
 
     /**
-     * Clear the editor panel.
+     * Clear the editor panel and release resources.
      */
     fun clear() {
         currentFile = null
         editor?.markupModel?.removeAllHighlighters()
+        editor?.let { EditorFactory.getInstance().releaseEditor(it) }
+        editor = null
+
         editorPanel.removeAll()
         infoLabel.text = "Save the request to preview and run it here."
+        infoLabel.isVisible = true
         editorPanel.revalidate()
         editorPanel.repaint()
     }
