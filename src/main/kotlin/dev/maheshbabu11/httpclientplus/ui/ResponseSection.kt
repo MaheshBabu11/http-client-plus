@@ -127,11 +127,22 @@ class ResponseSection {
         val safeBase = httpFileBaseName.trim().ifBlank { "request" }
         val custom = customName?.trim().orEmpty()
         val ts = if (forceOverwrite) "" else "-{{\$timestamp}}"
-        val allowedExts = setOf("jpg", "pdf", "png", "txt", "xml", "html", "csv", "json", "zip", "bin", "webp", "gif")
-        val cleanUrl = finalUrl.substringBefore('?').substringBefore('#')
-        val lastSegment = cleanUrl.substringAfterLast('/')
-        val ext = lastSegment.substringAfterLast('.', "").lowercase()
+
+        val allowedExts = setOf(
+            "jpg", "pdf", "png", "txt", "xml", "html",
+            "csv", "json", "zip", "bin", "webp", "gif"
+        )
+
+        val pathPart = finalUrl.substringBefore('?').substringBefore('#')
+        val lastSegment = pathPart.substringAfterLast('/')
+
+        val ext = Regex("\\.([a-zA-Z0-9]+)$")
+            .find(lastSegment)
+            ?.groupValues?.get(1)
+            ?.lowercase()
+
         val extension = if (ext in allowedExts) ext else "json"
+
         val fileName = if (custom.isEmpty()) {
             "response$ts.$extension"
         } else {
