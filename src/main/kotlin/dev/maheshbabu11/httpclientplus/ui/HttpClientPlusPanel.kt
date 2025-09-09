@@ -68,13 +68,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
     private val authorizationSection = AuthorizationSection()
     private val bodySection = BodySection(project)
     private val settingsSection = SettingsSection()
-    private val envEditorSection = EnvEditorSection(project) { /* no-op: env selector removed */ }
     private val scriptHandlerSection = ScriptHandlerSection(project)
-    private val savedRequestsSection = SavedRequestsSection(
-        project,
-        onRequestSelected = { data, vFile -> loadRequestData(data, vFile) },
-        onShowResponses = { requestName, saveDir -> showResponsesForRequest(requestName, saveDir) }
-    )
     private val responseSaveSection = ResponseSection()
 
     private val nameField = JBTextField().apply {
@@ -125,8 +119,6 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         loadCollections()
     }
 
-    // Removed refreshEnvSelector and updateEnvHostToggle
-
     private fun buildMainPanel(): JComponent {
         val mainPanel = JPanel(BorderLayout())
         mainPanel.add(buildRequestBar(), BorderLayout.NORTH)
@@ -134,7 +126,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         return mainPanel
     }
 
-    private fun showResponsesForRequest(collectionName: String, requestName: String) {
+    fun showResponsesForRequest(collectionName: String, requestName: String) {
         val baseDir = (project.basePath + "/http-client-plus/collections")
         val collection = collectionName.replace(" ", "_")
         val request = requestName.replace(" ", "_")
@@ -258,12 +250,6 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
     private fun buildTabsSection(): JComponent {
         tabbedPane = JBTabbedPane()
         tabbedPane.border = JBUI.Borders.empty(0, 15, 15, 15)
-        tabbedPane.addTab(
-            "Saved Requests",
-            AllIcons.Nodes.Folder,
-            savedRequestsSection.component,
-            "Saved HTTP requests"
-        )
         tabbedPane.addTab("Params", AllIcons.Actions.Properties, paramsSection.component, "Query parameters")
         tabbedPane.addTab("Headers", AllIcons.Actions.Properties, headersSection.component, "HTTP headers")
         tabbedPane.addTab("Authorization", AllIcons.Diff.Lock, authorizationSection.component, "Authorization settings")
@@ -275,12 +261,6 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
             "Response handler scripts"
         )
         tabbedPane.addTab("Settings", AllIcons.General.GearPlain, settingsSection.component, "Request options")
-        tabbedPane.addTab(
-            "Environments",
-            AllIcons.Debugger.VariablesTab,
-            envEditorSection.component,
-            "Environment variables"
-        )
         tabbedPane.addTab("Response", AllIcons.FileTypes.Json, responseSaveSection.component, "Response save options")
 
         return tabbedPane
