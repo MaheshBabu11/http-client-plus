@@ -1,19 +1,4 @@
-/*
- * Copyright 2025 Mahesh Babu (MaheshBabu11)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// kotlin
 package dev.maheshbabu11.httpclientplus.ui
 
 import com.intellij.openapi.fileTypes.FileTypeManager
@@ -22,12 +7,13 @@ import com.intellij.ui.EditorTextField
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
+import java.awt.CardLayout
 import java.awt.Font
+import java.awt.GridLayout
+import javax.swing.ButtonGroup
 import javax.swing.JComponent
-import javax.swing.JLabel
 import javax.swing.JPanel
-import javax.swing.Box
-import javax.swing.BoxLayout
+import javax.swing.JToggleButton
 import javax.swing.border.LineBorder
 import javax.swing.UIManager
 
@@ -38,33 +24,51 @@ class ScriptHandlerSection(private val project: Project?) {
     private val preEditor = EditorTextField(null, project, jsFileType, false).apply {
         setOneLineMode(false)
         font = Font(Font.MONOSPACED, Font.PLAIN, 12)
-        toolTipText = "Enter pre-request script. Example: < {% request.variables.set(\"clients\", [{id:1}]) %}"
+        toolTipText = "Enter pre-request script"
     }
+
 
     private val postEditor = EditorTextField(null, project, jsFileType, false).apply {
         setOneLineMode(false)
         font = Font(Font.MONOSPACED, Font.PLAIN, 12)
-        toolTipText =
-            "Enter response handler script. Example: > {% client.global.set(\"auth_token\", response.body.token); %}"
+        toolTipText = "Enter response handler script"
     }
 
-    val component: JComponent = JPanel().apply {
-        layout = BoxLayout(this, BoxLayout.Y_AXIS)
-        border = JBUI.Borders.empty(10)
+    val component: JComponent
 
-        add(buildSection("Pre-request script (optional)", preEditor))
-        add(Box.createVerticalStrut(12))
-        add(buildSection("Response handler script (optional)", postEditor))
+    init {
+        // Header with two toggle buttons that share the header width equally
+        val header = JPanel(GridLayout(1, 2, 0, 0))
+        val preTab = JToggleButton("Pre-request script")
+        val postTab = JToggleButton("Post-request script")
+        preTab.isSelected = true
+        ButtonGroup().apply {
+            add(preTab)
+            add(postTab)
+        }
+        // Optional padding / styling
+        preTab.border = JBUI.Borders.empty(8, 12)
+        postTab.border = JBUI.Borders.empty(8, 12)
+        header.add(preTab)
+        header.add(postTab)
+
+        // Content area using CardLayout
+        val cards = JPanel(CardLayout()).apply {
+            add(wrapEditor(preEditor), "pre")
+            add(wrapEditor(postEditor), "post")
+        }
+
+        // Toggle actions switch cards
+        preTab.addActionListener { (cards.layout as CardLayout).show(cards, "pre") }
+        postTab.addActionListener { (cards.layout as CardLayout).show(cards, "post") }
+
+        component = JPanel(BorderLayout()).apply {
+            add(header, BorderLayout.NORTH)
+            add(cards, BorderLayout.CENTER)
+        }
     }
 
-    private fun buildSection(label: String, editor: EditorTextField): JComponent {
-        val panel = JPanel(BorderLayout())
-        panel.border = JBUI.Borders.emptyBottom(10)
-
-        panel.add(JLabel(label).apply {
-            border = JBUI.Borders.emptyBottom(6)
-        }, BorderLayout.NORTH)
-
+    private fun wrapEditor(editor: EditorTextField): JComponent {
         val scrollPane = JBScrollPane(editor).apply {
             border = LineBorder(
                 UIManager.getColor("Component.borderColor") ?: UIManager.getColor("Panel.background"),
@@ -74,9 +78,10 @@ class ScriptHandlerSection(private val project: Project?) {
             verticalScrollBarPolicy = JBScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
             horizontalScrollBarPolicy = JBScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
         }
-
-        panel.add(scrollPane, BorderLayout.CENTER)
-        return panel
+        return JPanel(BorderLayout()).apply {
+            border = JBUI.Borders.empty(10)
+            add(scrollPane, BorderLayout.CENTER)
+        }
     }
 
     fun getPreScript(): String? {
