@@ -130,25 +130,21 @@ class ResponseSection {
 
         val allowedExts = setOf(
             "jpg", "pdf", "png", "txt", "xml", "html",
-            "csv", "json", "zip", "bin", "webp", "gif"
+            "csv", "json", "zip", "bin", "webp", "gif", "jpeg", "yaml", "yml",
+            "md", "svg", "log", "xlsx", "xls", "docx", "doc", "ppt", "pptx"
         )
-
         val pathPart = finalUrl.substringBefore('?').substringBefore('#')
         val lastSegment = pathPart.substringAfterLast('/')
-
         val ext = Regex("\\.([a-zA-Z0-9]+)$")
             .find(lastSegment)
             ?.groupValues?.get(1)
             ?.lowercase()
-
         val extension = if (ext in allowedExts) ext else "json"
-
         val fileName = if (custom.isEmpty()) {
             "response$ts.$extension"
         } else {
             "$custom$ts.$extension"
         }
-
         return "$safeBase/$fileName"
     }
 
