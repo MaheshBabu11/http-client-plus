@@ -3,6 +3,7 @@
 A comprehensive Postman-like tool window for IntelliJ IDEA that lets you compose, organize, and execute HTTP requests. All requests are saved as standard IntelliJ HTTP Client (.http) files, making them portable, shareable, and version-controlled.
 
 [![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/28340-http-client-plus)](https://plugins.jetbrains.com/plugin/28340-http-client-plus)
+[![SonarQube](https://github.com/MaheshBabu11/http-client-plus/actions/workflows/build.yml/badge.svg)](https://github.com/MaheshBabu11/http-client-plus/actions/workflows/build.yml)
 
 ## 📦 Installation
 
