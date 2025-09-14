@@ -68,14 +68,9 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
     private val authorizationSection = AuthorizationSection()
     private val bodySection = BodySection(project)
     private val settingsSection = SettingsSection()
-    private val envEditorSection = EnvEditorSection(project) { /* no-op: env selector removed */ }
     private val scriptHandlerSection = ScriptHandlerSection(project)
-    private val savedRequestsSection = SavedRequestsSection(
-        project,
-        onRequestSelected = { data, vFile -> loadRequestData(data, vFile) },
-        onShowResponses = { requestName, saveDir -> showResponsesForRequest(requestName, saveDir) }
-    )
     private val responseSaveSection = ResponseSection()
+    private val runHttpFileSection = RunHttpFileSection(project)
 
     private val nameField = JBTextField().apply {
         toolTipText = "Request name (used as file name)"
@@ -125,8 +120,6 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         loadCollections()
     }
 
-    // Removed refreshEnvSelector and updateEnvHostToggle
-
     private fun buildMainPanel(): JComponent {
         val mainPanel = JPanel(BorderLayout())
         mainPanel.add(buildRequestBar(), BorderLayout.NORTH)
@@ -134,7 +127,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         return mainPanel
     }
 
-    private fun showResponsesForRequest(collectionName: String, requestName: String) {
+    fun showResponsesForRequest(collectionName: String, requestName: String) {
         val baseDir = (project.basePath + "/http-client-plus/collections")
         val collection = collectionName.replace(" ", "_")
         val request = requestName.replace(" ", "_")
@@ -258,30 +251,19 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
     private fun buildTabsSection(): JComponent {
         tabbedPane = JBTabbedPane()
         tabbedPane.border = JBUI.Borders.empty(0, 15, 15, 15)
-        tabbedPane.addTab(
-            "Saved Requests",
-            AllIcons.Nodes.Folder,
-            savedRequestsSection.component,
-            "Saved HTTP requests"
-        )
         tabbedPane.addTab("Params", AllIcons.Actions.Properties, paramsSection.component, "Query parameters")
         tabbedPane.addTab("Headers", AllIcons.Actions.Properties, headersSection.component, "HTTP headers")
         tabbedPane.addTab("Authorization", AllIcons.Diff.Lock, authorizationSection.component, "Authorization settings")
         tabbedPane.addTab("Body", AllIcons.FileTypes.Json, bodySection.component, "Request body")
         tabbedPane.addTab(
             "Scripts",
-            AllIcons.Actions.Execute,
+            AllIcons.FileTypes.JavaScript,
             scriptHandlerSection.component,
             "Response handler scripts"
         )
         tabbedPane.addTab("Settings", AllIcons.General.GearPlain, settingsSection.component, "Request options")
-        tabbedPane.addTab(
-            "Environments",
-            AllIcons.Debugger.VariablesTab,
-            envEditorSection.component,
-            "Environment variables"
-        )
         tabbedPane.addTab("Response", AllIcons.FileTypes.Json, responseSaveSection.component, "Response save options")
+        tabbedPane.addTab("Run", AllIcons.Actions.Execute, runHttpFileSection.component, "Preview & run saved .http")
 
         return tabbedPane
     }
@@ -305,13 +287,18 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
                     val caretOffset = editor?.caretModel?.offset
                     val scrollOffset = editor?.scrollingModel?.verticalScrollOffset
                     fem.closeFile(updated)
-                    fem.openFile(updated, true)
+                    // fem.openFile(updated, true)
                     val newEditor = fem.selectedTextEditor
                     if (caretOffset != null) newEditor?.caretModel?.moveToOffset(caretOffset)
                     if (scrollOffset != null) newEditor?.scrollingModel?.scrollVertically(scrollOffset)
                 } else {
-                    fem.openFile(updated, true)
+                    // fem.openFile(updated, true)
                 }
+                // Update Run tab
+                FileDocumentManager.getInstance().reloadFiles(updated)
+                runHttpFileSection.showFile(updated)
+                val idx = tabbedPane.indexOfTab("Run")
+                if (idx >= 0) tabbedPane.selectedIndex = idx
                 return
             }
         }
@@ -327,7 +314,12 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
                 )
             } else {
                 currentRequestFile = vFile
-                fem.openFile(vFile, true)
+                //fem.openFile(vFile, true)
+                // Update Run tab
+                FileDocumentManager.getInstance().reloadFiles(vFile)
+                runHttpFileSection.showFile(vFile)
+                val idx = tabbedPane.indexOfTab("Run")
+                if (idx >= 0) tabbedPane.selectedIndex = idx
             }
             return
         }
@@ -341,8 +333,13 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
                 if (isOpen) {
                     FileDocumentManager.getInstance().reloadFiles(updated)
                 } else {
-                    fem.openFile(updated, true)
+                    // fem.openFile(updated, true)
                 }
+                // Update Run tab
+                FileDocumentManager.getInstance().reloadFiles(updated)
+                runHttpFileSection.showFile(updated)
+                val idx = tabbedPane.indexOfTab("Run")
+                if (idx >= 0) tabbedPane.selectedIndex = idx
                 return
             }
         }
@@ -358,6 +355,10 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         } else {
             currentRequestFile = vFile
             fem.openFile(vFile, true)
+            // Update Run tab
+            runHttpFileSection.showFile(vFile)
+            val idx = tabbedPane.indexOfTab("Run")
+            if (idx >= 0) tabbedPane.selectedIndex = idx
         }
     }
 
@@ -467,6 +468,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         settingsSection.clear()
         scriptHandlerSection.clear()
         responseSaveSection.clear()
+        runHttpFileSection.clear()
         currentRequestFile = vFile
 
         methodBox.selectedItem = data.method
@@ -500,6 +502,8 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         } else {
             bodySection.loadText(data.body, data.headers)
         }
+        val idx = tabbedPane.indexOfTab("Run")
+        if (idx >= 0) tabbedPane.selectedIndex = idx
 
         // Settings
         settingsSection.loadSettings(data.noRedirect, data.noCookieJar, data.noAutoEncoding, data.httpVersion)
@@ -509,6 +513,13 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         scriptHandlerSection.setPreScript(data.preExecutionScript)
 
         responseSaveSection.setPath(data.responseSavePath, data.forceSave)
+
+        // Run tab preview if a file is provided
+        if (vFile != null && vFile.isValid) {
+            runHttpFileSection.showFile(vFile)
+        } else {
+            runHttpFileSection.clear()
+        }
     }
 
     fun clearUI() {
@@ -519,6 +530,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         settingsSection.clear()
         scriptHandlerSection.clear()
         responseSaveSection.clear()
+        runHttpFileSection.clear()
         this.nameField.text = null
         this.urlField.text = null
         this.methodBox.selectedItem = "GET"
@@ -600,4 +612,3 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
 
 
 }
-

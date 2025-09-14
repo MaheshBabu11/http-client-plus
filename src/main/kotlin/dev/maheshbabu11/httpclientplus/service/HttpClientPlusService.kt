@@ -37,6 +37,10 @@ class HttpClientPlusService(private val project: Project) {
 
         SwingUtilities.invokeLater {
             toolWindow.show {
+                val cm = toolWindow.contentManager
+                val target = cm.contents.firstOrNull { it.component == panel }
+                if (target != null) cm.setSelectedContent(target, true)
+
                 panel?.let {
                     it.clearUI()
                     it.loadRequestData(data, null)
