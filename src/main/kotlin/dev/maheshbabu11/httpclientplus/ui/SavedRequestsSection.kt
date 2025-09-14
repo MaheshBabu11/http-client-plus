@@ -1,19 +1,3 @@
-/*
- * Copyright 2025 Mahesh Babu (MaheshBabu11)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package dev.maheshbabu11.httpclientplus.ui
 
 import com.intellij.icons.AllIcons
@@ -21,6 +5,7 @@ import com.intellij.ide.actions.RevealFileAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -66,18 +51,18 @@ class SavedRequestsSection(
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         .withZone(ZoneId.systemDefault())
 
-    private val lastModifiedInstants = mutableListOf<Instant>()
-
     init {
-        // Table model: Collection | Name | Method | Last Modified
-        tableModel = object : DefaultTableModel(arrayOf("Collection", "Name", "Method", "Last Modified"), 0) {
-            override fun isCellEditable(row: Int, column: Int) = false
-            override fun getColumnClass(column: Int) = when (column) {
-                0, 1, 2 -> String::class.java
-                3 -> Instant::class.java
-                else -> super.getColumnClass(column)
+        // Model columns: Collection | Name | Method | Last Modified | __PATH__ (hidden)
+        tableModel =
+            object : DefaultTableModel(arrayOf("Collection", "Name", "Method", "Last Modified", "__PATH__"), 0) {
+                override fun isCellEditable(row: Int, column: Int) = false
+                override fun getColumnClass(column: Int) = when (column) {
+                    0, 1, 2 -> String::class.java
+                    3 -> Instant::class.java
+                    4 -> String::class.java // hidden path
+                    else -> super.getColumnClass(column)
+                }
             }
-        }
 
         table = JBTable(tableModel).apply {
             preferredScrollableViewportSize = Dimension(600, 300)
@@ -85,17 +70,22 @@ class SavedRequestsSection(
             rowHeight = 28
             intercellSpacing = Dimension(0, 0)
 
+            // Column widths for visible columns
             columnModel.getColumn(0).preferredWidth = 150 // Collection
             columnModel.getColumn(1).preferredWidth = 250 // Name
             columnModel.getColumn(2).preferredWidth = 80  // Method
             columnModel.getColumn(3).preferredWidth = 150 // Date
 
-            setDefaultRenderer(String::class.java, MethodCellRenderer())
-            setDefaultRenderer(Any::class.java, DateCellRenderer())
+            // Renderers
+            columnModel.getColumn(2).cellRenderer = MethodCellRenderer() // only for Method column
+            setDefaultRenderer(Instant::class.java, DateCellRenderer())   // for Last Modified
 
             selectionForeground = JBColor.foreground()
             selectionBackground = JBColor(0xE0E0E0, 0x454545)
         }
+
+        // Hide the __PATH__ column from the view
+        table.columnModel.removeColumn(table.columnModel.getColumn(4))
 
         table.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
@@ -118,21 +108,15 @@ class SavedRequestsSection(
         sorter.setComparator(0) { a, b -> (a as String).compareTo(b as String, ignoreCase = true) }
         sorter.setComparator(1) { a, b -> (a as String).compareTo(b as String, ignoreCase = true) }
         sorter.setComparator(2) { a, b -> (a as String).compareTo(b as String, ignoreCase = true) }
-        sorter.setComparator(3) { a, b ->
-            val rowA = tableModel.findRowByValue(a)
-            val rowB = tableModel.findRowByValue(b)
-            lastModifiedInstants[rowA].compareTo(lastModifiedInstants[rowB])
-        }
+        sorter.setComparator(3) { a, b -> (a as Instant).compareTo(b as Instant) }
 
         val header: JTableHeader = table.tableHeader
         header.reorderingAllowed = false
         header.defaultRenderer = TableCellRenderer { _, value, _, _, _, _ ->
-            val label = JLabel(value.toString())
-            label.border = BorderFactory.createEmptyBorder(0, 8, 0, 0)
-            label
+            JLabel(value.toString()).apply { border = BorderFactory.createEmptyBorder(0, 8, 0, 0) }
         }
 
-        // File system listener (auto-refresh)
+        // Auto-refresh on VFS changes
         val connection = project.messageBus.connect()
         connection.subscribe(
             VirtualFileManager.VFS_CHANGES,
@@ -148,45 +132,14 @@ class SavedRequestsSection(
             }
         )
 
-        // Build main component
         component = JPanel(BorderLayout()).apply {
             border = JBUI.Borders.empty(8)
-            add(buildSearchPanel(), BorderLayout.NORTH) // ✅ Search
+            add(buildSearchPanel(), BorderLayout.NORTH)
             add(JBScrollPane(table).apply {
                 border = JBUI.Borders.customLine(JBColor.border(), 1)
             }, BorderLayout.CENTER)
-            add(buildToolbarPanel(), BorderLayout.SOUTH) // ✅ Toolbar
+            add(buildToolbarPanel(), BorderLayout.SOUTH)
         }
-
-        // Drag & Drop support (import collections)
-        component.dropTarget = object : DropTarget() {
-            override fun drop(e: DropTargetDropEvent) {
-                try {
-                    e.acceptDrop(DnDConstants.ACTION_COPY)
-                    val transferable = e.transferable
-                    if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                        val files = transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<*>
-                        files.filterIsInstance<File>()
-                            .firstOrNull { it.name.endsWith(".json") }
-                            ?.let { importCollection(project) }
-                    }
-                    e.dropComplete(true)
-                } catch (_: Exception) {
-                    e.dropComplete(false)
-                }
-            }
-
-            override fun dragEnter(e: DropTargetDragEvent) {
-                component.background = JBColor(0xE0E8FF, 0x2D3A4C)
-                super.dragEnter(e)
-            }
-
-            override fun dragExit(e: DropTargetEvent) {
-                component.background = JBColor.background()
-                super.dragExit(e)
-            }
-        }
-
         refreshList()
     }
 
@@ -197,11 +150,6 @@ class SavedRequestsSection(
             add(createToolbarButton(AllIcons.Actions.Edit, "Open File") { openSelectedFile() })
             add(createToolbarButton(AllIcons.General.Delete, "Delete File") { deleteSelectedFile() })
             add(createToolbarButton(AllIcons.General.Refresh, "Refresh Requests") { refreshList() })
-            add(
-                createToolbarButton(
-                    AllIcons.ToolbarDecorator.Import,
-                    "Import Collection"
-                ) { importCollection(project) })
         }
     }
 
@@ -286,13 +234,17 @@ class SavedRequestsSection(
             hasFocus: Boolean, row: Int, column: Int
         ): Component {
             super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
+            val text = when (value) {
+                is Instant -> formatter.format(value)
+                else -> value?.toString() ?: ""
+            }
+            this.text = text
             foreground = JBColor(0x666666, 0x999999)
             horizontalAlignment = SwingConstants.LEFT
             border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
             return this
         }
     }
-
 
     // === Context Menu ===
     private fun showContextMenu(e: MouseEvent) {
@@ -311,7 +263,6 @@ class SavedRequestsSection(
                     }
                 }
             })
-
             add(JMenuItem("Show in Files", AllIcons.Actions.NewFolder).apply {
                 addActionListener {
                     getSelectedFile()?.let { vFile ->
@@ -328,7 +279,6 @@ class SavedRequestsSection(
     // === File Handling ===
     private fun refreshList() {
         tableModel.rowCount = 0
-        lastModifiedInstants.clear()
 
         val collectionsDir = File(project.basePath, "http-client-plus/collections")
         if (collectionsDir.exists() && collectionsDir.isDirectory) {
@@ -336,14 +286,17 @@ class SavedRequestsSection(
                 collectionDir.listFiles { f -> f.isFile && f.extension == "http" }
                     ?.forEach { file ->
                         val instant = Instant.ofEpochMilli(file.lastModified())
-                        lastModifiedInstants.add(instant)
                         val method = parseHttpMethod(file)
+                        // Display names keep original characters; no lossy transforms
+                        val collectionDisplay = collectionDir.name.replace("_", " ")
+                        val requestDisplay = file.nameWithoutExtension.replace("_", " ")
                         tableModel.addRow(
                             arrayOf(
-                                collectionDir.name.replace("_", " "),
-                                file.name.replace("_", " ").substringBefore(".http"),
+                                collectionDisplay,
+                                requestDisplay,
                                 method,
-                                formatter.format(instant)
+                                instant,
+                                file.absolutePath // hidden path
                             )
                         )
                     }
@@ -369,24 +322,18 @@ class SavedRequestsSection(
             } ?: "GET"
         }.getOrDefault("GET")
 
-
     private fun getSelectedFile(): VirtualFile? {
         val selectedRow = table.selectedRow
         if (selectedRow < 0) return null
         val modelRow = table.convertRowIndexToModel(selectedRow)
-        val collection = tableModel.getValueAt(modelRow, 0) as? String ?: return null
-        val collectionDir = collection.replace(" ", "_")
-        val fileName = tableModel.getValueAt(modelRow, 1) as? String ?: return null
-        val filePathName = fileName.replace(" ", "_") + ".http"
-        val file = File(project.basePath, "http-client-plus/collections/$collectionDir/$filePathName")
-        return LocalFileSystem.getInstance().findFileByIoFile(file)
+        val path = tableModel.getValueAt(modelRow, 4) as? String ?: return null
+        return LocalFileSystem.getInstance().findFileByIoFile(File(path))
     }
 
     private fun openSelectedFile() {
         val vFile = getSelectedFile() ?: return
         val data = HttpFileService.parseRequestFile(project, vFile) ?: return
         onRequestSelected(data, vFile)
-        // FileEditorManager.getInstance(project).openFile(vFile, true)
     }
 
     private fun deleteSelectedFile() {
@@ -402,79 +349,4 @@ class SavedRequestsSection(
             refreshList()
         }
     }
-
-    private fun DefaultTableModel.findRowByValue(value: Any): Int {
-        for (i in 0 until rowCount) {
-            if (getValueAt(i, 3) == value) return i
-        }
-        return -1
-    }
-
-    fun importCollection(project: Project) {
-        val dialog = ImportTypeDialog()
-        if (!dialog.showAndGet()) return
-
-        val importer: Any = when (dialog.getSelectedType()) {
-            "Postman" -> PostmanImporter()
-            "cURL" -> CurlImporter()
-            else -> return
-        }
-
-        val requests: List<HttpRequestData> = when (importer) {
-            is PostmanImporter -> {
-                val descriptor = FileChooserDescriptor(true, false, false, false, false, false)
-                    .withFileFilter { it.extension == "json" }
-                val file = FileChooser.chooseFile(descriptor, project, null) ?: return
-                importer.import(project, file)
-            }
-
-            is CurlImporter -> {
-                val collectionsDir = File(project.basePath, "http-client-plus/collections")
-                val existingCollections =
-                    collectionsDir.listFiles()?.filter { it.isDirectory }?.map { it.name } ?: emptyList()
-
-                val dialog = CurlImportDialog(project, existingCollections)
-                if (!dialog.showAndGet()) return
-
-                val text = dialog.curlCommand
-                val fileName = dialog.resultFileName
-                val collection = dialog.resultCollection
-
-                if (text.isNullOrBlank() || fileName.isNullOrBlank() || collection.isNullOrBlank()) {
-                    return
-                }
-
-                val importedRequests = importer.import(project, text)
-                importedRequests.map { req ->
-                    req.copy(
-                        name = fileName,
-                        saveDirPath = "http-client-plus/collections/${collection.replace(" ", "_")}"
-                    )
-                }
-            }
-
-
-            else -> emptyList()
-        }
-
-        if (requests.isNotEmpty()) {
-            var success = 0
-            try {
-                requests.forEach { req ->
-                    if (HttpFileService.createRequestFile(project, req) != null) {
-                        success++
-                    }
-                }
-                refreshList()
-                Messages.showInfoMessage(project, "Imported $success of ${requests.size} requests", "Import Successful")
-            } catch (e: Exception) {
-                Messages.showErrorDialog(project, "Error importing requests: ${e.message}", "Import Failed")
-                return
-            }
-        } else {
-            Messages.showWarningDialog(project, "No requests were imported", "Import Failed")
-        }
-    }
-
 }
-

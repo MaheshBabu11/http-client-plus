@@ -24,6 +24,7 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import dev.maheshbabu11.httpclientplus.service.HttpClientPlusService
 import dev.maheshbabu11.httpclientplus.ui.EnvEditorSection
+import dev.maheshbabu11.httpclientplus.ui.ImportSection
 import dev.maheshbabu11.httpclientplus.ui.SavedRequestsSection
 import javax.swing.SwingUtilities
 
@@ -31,7 +32,7 @@ class HttpClientPlusToolWindowFactory : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val contentFactory = ContentFactory.getInstance()
         val requestPanel = HttpClientPlusPanel(project)
-        val requestContent = contentFactory.createContent(requestPanel, "Request", false)
+        val requestContent = contentFactory.createContent(requestPanel, "🚀 Request", false)
         toolWindow.contentManager.addContent(requestContent)
         val savedSection = SavedRequestsSection(
             project,
@@ -49,11 +50,14 @@ class HttpClientPlusToolWindowFactory : ToolWindowFactory, DumbAware {
                 }
             }
         )
-        val savedContent = contentFactory.createContent(savedSection.component, "Saved Requests", false)
+        val savedContent = contentFactory.createContent(savedSection.component, "💾 Saved Requests", false)
         toolWindow.contentManager.addContent(savedContent)
         val envSection = EnvEditorSection(project)
-        val envContent = contentFactory.createContent(envSection.component, "Environments", false)
+        val envContent = contentFactory.createContent(envSection.component, "🌍 Environments", false)
         toolWindow.contentManager.addContent(envContent)
+        val importSection = ImportSection(project)
+        val importContent = contentFactory.createContent(importSection.component, "📂 Import", false)
+        toolWindow.contentManager.addContent(importContent)
         toolWindow.contentManager.setSelectedContent(requestContent, true)
         HttpClientPlusService.getInstance(project).registerPanel(requestPanel)
     }
