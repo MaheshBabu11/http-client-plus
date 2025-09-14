@@ -2,7 +2,7 @@
     <id>dev.maheshbabu11.http-client-plus</id>
     <name>HTTP Client Plus</name>
     <vendor email="mahesh.b.pec@gmail.com" url="https://www.maheshbabu11.dev/">Mahesh Babu</vendor>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
     <idea-version since-build="242" until-build="252.*"/>
 
     <description><![CDATA[
@@ -32,6 +32,15 @@
 
     <change-notes>
         <![CDATA[
+        <h3>1.0.7</h3>
+        <ul>
+        <li> Major UI overhaul for a cleaner, more intuitive experience.</li>
+        <li> Added cURL Import feature to convert cURL commands into .http files.</li>
+        <li> Added support for saving and viewing response files directly within the tool window.</li
+        <li> Improved error handling and user feedback for file operations.</li>
+        <li> Fixed various bugs related to request sending and file saving.</li>
+        <li> Enhanced performance when switching between tabs and sending requests.</li>
+        </ul>
         <h3>1.0.6</h3>
         <ul>
             <li>Added support for pre-request and post-request scripts using JavaScript.</li>
