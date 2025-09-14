@@ -202,8 +202,14 @@ object HttpFileService {
                 if (pct != null) sb.append("Content-Type: ").append(pct).append('\n')
                 sb.append('\n')
                 if (part.isFile) {
-                    val p = part.filePath?.takeIf { it.isNotBlank() } ?: ""
-                    sb.append("< ").append(p).append('\n')
+                    val p = part.filePath?.takeIf { it.isNotBlank() }
+                    if (p != null) {
+                        sb.append("< ").append(p).append('\n')
+                    } else {
+                        // Do not emit a dangling '< ' line; leave a comment to help user
+                        sb.append("# Missing file path for multipart part '")
+                            .append(part.name).append("'\n")
+                    }
                 } else {
                     sb.append(part.value.orEmpty()).append('\n')
                 }
@@ -322,7 +328,7 @@ object HttpFileService {
                     }
 
                     // Start of pre/post script blocks
-                    t.startsWith("<") -> {
+                    t.startsWith("< {%") -> {
                         collectingPre = true
                         preBuf.setLength(0)
                         preBuf.appendLine(line)
@@ -332,7 +338,7 @@ object HttpFileService {
                         }
                     }
 
-                    t.startsWith(">") -> {
+                    t.startsWith("> {%") -> {
                         collectingPost = true
                         postBuf.setLength(0)
                         postBuf.appendLine(line)
@@ -398,12 +404,17 @@ object HttpFileService {
                         parts += MultipartPart(
                             name = currentName!!,
                             isFile = isFile,
-                            filename = currentFilename,
+                            filename = if (isFile) currentFilename else null,
                             contentType = currentContentType,
                             value = if (!isFile) valueBuffer.toString().trimEnd() else null,
                             filePath = if (isFile) filePath else null
                         )
                     }
+                    // Reset per-part state
+                    currentName = null
+                    currentFilename = null
+                    currentContentType = null
+                    filePath = null
                     valueBuffer.setLength(0)
                     isFile = false
                     inPartHeaders = false
@@ -415,6 +426,8 @@ object HttpFileService {
                         line.startsWith("--$boundary") -> {
                             if (inPart) flushPart()
                             if (line.trimEnd().endsWith("--")) {
+                                // Final boundary marker; stop without extra flush
+                                inPart = false
                                 break
                             }
                             inPart = true
@@ -443,8 +456,7 @@ object HttpFileService {
                         }
 
                         inPart && inPartBody && line.startsWith("< ") -> {
-                            // file path reference syntax
-                            filePath = line.removePrefix("< ").trim()
+                            filePath = line.removePrefix("< ").trim().ifBlank { null }
                         }
 
                         inPart && inPartBody -> {
@@ -452,7 +464,8 @@ object HttpFileService {
                         }
                     }
                 }
-                flushPart()
+                // If still inside an unfinished part (e.g., file missing final boundary), flush once
+                if (inPart) flushPart()
                 multipartParts.addAll(parts)
             }
 

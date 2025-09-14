@@ -16,6 +16,9 @@
 
 package dev.maheshbabu11.httpclientplus.ui
 
+import com.google.gson.JsonElement
+import com.google.gson.annotations.SerializedName
+
 
 data class PostmanCollection(
     val info: PostmanInfo,
@@ -43,6 +46,7 @@ data class PostmanRequest(
 
 data class PostmanUrl(
     val raw: String,
+    val protocol: String?,
     val host: List<String>?,
     val path: List<String>?,
     val query: List<PostmanQuery>? = null
@@ -62,9 +66,10 @@ data class PostmanBody(
 
 data class PostmanFormData(
     val key: String,
-    val value: String? = null,
-    val src: String? = null,
-    val type: String? = null
+    val value: String?,
+    @SerializedName("src") val src: JsonElement?,
+    val type: String?,
+    val contentType: String?
 )
 
 data class PostmanUrlEncoded(

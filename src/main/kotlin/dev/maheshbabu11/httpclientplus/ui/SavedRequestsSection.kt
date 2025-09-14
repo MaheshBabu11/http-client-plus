@@ -19,7 +19,8 @@ package dev.maheshbabu11.httpclientplus.ui
 import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.RevealFileAction
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileChooser.FileChooser
+import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -31,6 +32,8 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
+import dev.maheshbabu11.httpclientplus.importer.CurlImporter
+import dev.maheshbabu11.httpclientplus.importer.PostmanImporter
 import dev.maheshbabu11.httpclientplus.service.HttpFileService
 import dev.maheshbabu11.httpclientplus.service.HttpRequestData
 import java.awt.*
@@ -165,10 +168,10 @@ class SavedRequestsSection(
                         val files = transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<*>
                         files.filterIsInstance<File>()
                             .firstOrNull { it.name.endsWith(".json") }
-                            ?.let { importCollection(it) }
+                            ?.let { importCollection(project) }
                     }
                     e.dropComplete(true)
-                } catch (ex: Exception) {
+                } catch (_: Exception) {
                     e.dropComplete(false)
                 }
             }
@@ -194,7 +197,11 @@ class SavedRequestsSection(
             add(createToolbarButton(AllIcons.Actions.Edit, "Open File") { openSelectedFile() })
             add(createToolbarButton(AllIcons.General.Delete, "Delete File") { deleteSelectedFile() })
             add(createToolbarButton(AllIcons.General.Refresh, "Refresh Requests") { refreshList() })
-            add(createToolbarButton(AllIcons.ToolbarDecorator.Import, "Import Collection") { importCollection() })
+            add(
+                createToolbarButton(
+                    AllIcons.ToolbarDecorator.Import,
+                    "Import Collection"
+                ) { importCollection(project) })
         }
     }
 
@@ -379,7 +386,7 @@ class SavedRequestsSection(
         val vFile = getSelectedFile() ?: return
         val data = HttpFileService.parseRequestFile(project, vFile) ?: return
         onRequestSelected(data, vFile)
-       // FileEditorManager.getInstance(project).openFile(vFile, true)
+        // FileEditorManager.getInstance(project).openFile(vFile, true)
     }
 
     private fun deleteSelectedFile() {
@@ -403,41 +410,71 @@ class SavedRequestsSection(
         return -1
     }
 
-    // === Import Postman Collection ===
-    private fun importCollection(file: File? = null) {
-        val selectedFile = file ?: run {
-            val chooser = JFileChooser().apply {
-                fileSelectionMode = JFileChooser.FILES_ONLY
-                fileFilter = object : javax.swing.filechooser.FileFilter() {
-                    override fun accept(f: File) = f.isDirectory || f.name.endsWith(".json")
-                    override fun getDescription() = "Postman Collection (*.json)"
-                }
-            }
-            if (chooser.showOpenDialog(component) != JFileChooser.APPROVE_OPTION) return
-            chooser.selectedFile
+    fun importCollection(project: Project) {
+        val dialog = ImportTypeDialog()
+        if (!dialog.showAndGet()) return
+
+        val importer: Any = when (dialog.getSelectedType()) {
+            "Postman" -> PostmanImporter()
+            "cURL" -> CurlImporter()
+            else -> return
         }
 
-        try {
-            val importer = PostmanImporter(project)
-            val requests = importer.importFromFile(selectedFile)
-            var success = 0
-            requests.forEach { req ->
-                if (HttpFileService.createRequestFile(project, req) != null) success++
+        val requests: List<HttpRequestData> = when (importer) {
+            is PostmanImporter -> {
+                val descriptor = FileChooserDescriptor(true, false, false, false, false, false)
+                    .withFileFilter { it.extension == "json" }
+                val file = FileChooser.chooseFile(descriptor, project, null) ?: return
+                importer.import(project, file)
             }
-            refreshList()
-            JOptionPane.showMessageDialog(
-                component,
-                "Successfully imported $success/${requests.size} requests",
-                "Import Complete",
-                JOptionPane.INFORMATION_MESSAGE
-            )
-        } catch (e: Exception) {
-            JOptionPane.showMessageDialog(
-                component,
-                "Failed to import: ${e.message}",
-                "Import Error",
-                JOptionPane.ERROR_MESSAGE
-            )
+
+            is CurlImporter -> {
+                val collectionsDir = File(project.basePath, "http-client-plus/collections")
+                val existingCollections =
+                    collectionsDir.listFiles()?.filter { it.isDirectory }?.map { it.name } ?: emptyList()
+
+                val dialog = CurlImportDialog(project, existingCollections)
+                if (!dialog.showAndGet()) return
+
+                val text = dialog.curlCommand
+                val fileName = dialog.resultFileName
+                val collection = dialog.resultCollection
+
+                if (text.isNullOrBlank() || fileName.isNullOrBlank() || collection.isNullOrBlank()) {
+                    return
+                }
+
+                val importedRequests = importer.import(project, text)
+                importedRequests.map { req ->
+                    req.copy(
+                        name = fileName,
+                        saveDirPath = "http-client-plus/collections/${collection.replace(" ", "_")}"
+                    )
+                }
+            }
+
+
+            else -> emptyList()
+        }
+
+        if (requests.isNotEmpty()) {
+            var success = 0
+            try {
+                requests.forEach { req ->
+                    if (HttpFileService.createRequestFile(project, req) != null) {
+                        success++
+                    }
+                }
+                refreshList()
+                Messages.showInfoMessage(project, "Imported $success of ${requests.size} requests", "Import Successful")
+            } catch (e: Exception) {
+                Messages.showErrorDialog(project, "Error importing requests: ${e.message}", "Import Failed")
+                return
+            }
+        } else {
+            Messages.showWarningDialog(project, "No requests were imported", "Import Failed")
         }
     }
+
 }
+

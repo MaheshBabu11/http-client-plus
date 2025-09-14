@@ -36,25 +36,25 @@ class MultipartSection(private val project: Project) {
         preferredSize = Dimension(240, 28)
     }
 
-    private val model: DefaultTableModel = object : DefaultTableModel(0, 6) {
+    // Columns: Type | Name | Content-Type | Value | File Path
+    private val model: DefaultTableModel = object : DefaultTableModel(0, 5) {
         override fun isCellEditable(row: Int, column: Int): Boolean = true
-    }.apply { setColumnIdentifiers(arrayOf("Type", "Name", "Content-Type", "Value", "File Path", "Filename")) }
+    }.apply { setColumnIdentifiers(arrayOf("Type", "Name", "Content-Type", "Value", "File Path")) }
 
     private val table: JBTable = JBTable(model).apply {
         emptyText.text = "No parts. Click + to add."
         rowHeight = 24
         selectionModel.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
         columnModel.getColumn(0).preferredWidth = 90   // Type
-        columnModel.getColumn(1).preferredWidth = 180  // Name
-        columnModel.getColumn(2).preferredWidth = 180  // Content-Type
+        columnModel.getColumn(1).preferredWidth = 160  // Name
+        columnModel.getColumn(2).preferredWidth = 160  // Content-Type
         columnModel.getColumn(3).preferredWidth = 220  // Value
-        columnModel.getColumn(4).preferredWidth = 260  // File Path
-        columnModel.getColumn(5).preferredWidth = 180  // Filename
+        columnModel.getColumn(4).preferredWidth = 300  // File Path
         putClientProperty("terminateEditOnFocusLost", java.lang.Boolean.TRUE)
-        // Type column
+        // Type column editor
         columnModel.getColumn(0).cellEditor =
             DefaultCellEditor(com.intellij.openapi.ui.ComboBox(arrayOf("Text", "File")))
-        // Content-Type column
+        // Content-Type column editor
         val contentTypes = arrayOf(
             "text/plain",
             "application/json",
@@ -78,12 +78,12 @@ class MultipartSection(private val project: Project) {
 
         val decorated = ToolbarDecorator.createDecorator(table)
             .setAddAction { _ ->
-                model.addRow(arrayOf("Text", "", "text/plain", "", "", ""))
+                model.addRow(arrayOf("Text", "", "text/plain", "", ""))
             }
             .setRemoveAction { _ ->
                 val rows = table.selectedRows.sortedDescending()
                 rows.forEach { model.removeRow(it) }
-                if (model.rowCount == 0) model.addRow(arrayOf("Text", "", "text/plain", "", "", ""))
+                if (model.rowCount == 0) model.addRow(arrayOf("Text", "", "text/plain", "", ""))
             }
             .disableUpDownActions()
             .createPanel()
@@ -91,12 +91,20 @@ class MultipartSection(private val project: Project) {
     }
 
     init {
-        if (model.rowCount == 0) model.addRow(arrayOf("Text", "", "text/plain", "", "", ""))
+        if (model.rowCount == 0) model.addRow(arrayOf("Text", "", "text/plain", "", ""))
     }
 
     fun getBoundary(): String = boundaryField.text.trim().ifBlank { "WebAppBoundary" }
 
     fun getParts(): List<MultipartPart> {
+        // Commit any edit in progress so we read latest value
+        if (table.isEditing) {
+            try {
+                if (!table.cellEditor.stopCellEditing()) table.cellEditor.cancelCellEditing()
+            } catch (_: Exception) {
+                try { table.cellEditor.cancelCellEditing() } catch (_: Exception) {}
+            }
+        }
         val list = mutableListOf<MultipartPart>()
         for (i in 0 until model.rowCount) {
             val type = (model.getValueAt(i, 0) as? String)?.trim()?.lowercase().orEmpty()
@@ -104,14 +112,14 @@ class MultipartSection(private val project: Project) {
             val contentType = (model.getValueAt(i, 2) as? String)?.trim()?.ifBlank { null }
             val value = (model.getValueAt(i, 3) as? String)?.trim()?.ifBlank { null }
             val filePath = (model.getValueAt(i, 4) as? String)?.trim()?.ifBlank { null }
-            val filename = (model.getValueAt(i, 5) as? String)?.trim()?.ifBlank { null }
             if (name.isEmpty()) continue
             val isFile = type == "file"
             val part = if (isFile) {
+                val inferredFilename = filePath?.replace('\\', '/')?.substringAfterLast('/')
                 MultipartPart(
                     name = name,
                     isFile = true,
-                    filename = filename,
+                    filename = inferredFilename, // store inferred filename for writer
                     contentType = contentType,
                     value = null,
                     filePath = filePath
@@ -135,7 +143,7 @@ class MultipartSection(private val project: Project) {
         boundaryField.text = boundary ?: "WebAppBoundary"
         model.rowCount = 0
         if (parts.isEmpty()) {
-            model.addRow(arrayOf("Text", "", "text/plain", "", "", ""))
+            model.addRow(arrayOf("Text", "", "text/plain", "", ""))
             return
         }
         parts.forEach { part ->
@@ -146,8 +154,7 @@ class MultipartSection(private val project: Project) {
                         part.name,
                         part.contentType ?: "application/octet-stream",
                         "",
-                        part.filePath ?: "",
-                        part.filename ?: ""
+                        part.filePath ?: ""
                     )
                 )
             } else {
@@ -157,7 +164,6 @@ class MultipartSection(private val project: Project) {
                         part.name,
                         part.contentType ?: "text/plain",
                         part.value ?: "",
-                        "",
                         ""
                     )
                 )
@@ -168,7 +174,6 @@ class MultipartSection(private val project: Project) {
     fun clear() {
         boundaryField.text = "WebAppBoundary"
         model.rowCount = 0
-        model.addRow(arrayOf("Text", "", "text/plain", "", "", ""))
+        model.addRow(arrayOf("Text", "", "text/plain", "", ""))
     }
-
 }
