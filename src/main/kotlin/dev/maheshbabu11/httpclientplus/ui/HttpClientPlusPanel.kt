@@ -196,7 +196,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         ): Component {
             super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
             foreground = JBColor(0x666666, 0x999999)
-            horizontalAlignment = SwingConstants.LEFT
+            horizontalAlignment = LEFT
             border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
             return this
         }
@@ -287,12 +287,9 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
                     val caretOffset = editor?.caretModel?.offset
                     val scrollOffset = editor?.scrollingModel?.verticalScrollOffset
                     fem.closeFile(updated)
-                    // fem.openFile(updated, true)
                     val newEditor = fem.selectedTextEditor
                     if (caretOffset != null) newEditor?.caretModel?.moveToOffset(caretOffset)
                     if (scrollOffset != null) newEditor?.scrollingModel?.scrollVertically(scrollOffset)
-                } else {
-                    // fem.openFile(updated, true)
                 }
                 // Update Run tab
                 FileDocumentManager.getInstance().reloadFiles(updated)
@@ -314,8 +311,6 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
                 )
             } else {
                 currentRequestFile = vFile
-                //fem.openFile(vFile, true)
-                // Update Run tab
                 FileDocumentManager.getInstance().reloadFiles(vFile)
                 runHttpFileSection.showFile(vFile)
                 val idx = tabbedPane.indexOfTab("Run")
@@ -332,10 +327,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
                 val isOpen = fem.getEditors(updated).isNotEmpty()
                 if (isOpen) {
                     FileDocumentManager.getInstance().reloadFiles(updated)
-                } else {
-                    // fem.openFile(updated, true)
                 }
-                // Update Run tab
                 FileDocumentManager.getInstance().reloadFiles(updated)
                 runHttpFileSection.showFile(updated)
                 val idx = tabbedPane.indexOfTab("Run")
@@ -364,14 +356,17 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
 
 
     private fun buildRequestData(): HttpRequestData? {
+        val validationError = "Validation Error"
+        val contentType = "Content-Type"
+
         val method = (methodBox.selectedItem as? String)?.trim().orEmpty()
         val url = urlField.text.trim()
         if (url.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "URL cannot be empty", "Validation Error", JOptionPane.WARNING_MESSAGE)
+            JOptionPane.showMessageDialog(this, "URL cannot be empty", validationError, JOptionPane.WARNING_MESSAGE)
             return null
         }
 
-        var finalUrl = UrlUtils.buildUrlWithParams(
+        val finalUrl = UrlUtils.buildUrlWithParams(
             baseUrl = url,
             params = paramsSection.getParams(),
             autoEncode = !settingsSection.isNoAutoEncoding()
@@ -392,7 +387,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
             JOptionPane.showMessageDialog(
                 this,
                 "Name is required to save the request",
-                "Validation Error",
+                validationError,
                 JOptionPane.WARNING_MESSAGE
             )
             return null
@@ -403,8 +398,8 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
         val shouldIncludeCt =
             isMultipart || bodyPresent || methodUpper == "POST" || methodUpper == "PUT" || methodUpper == "PATCH"
         if (shouldIncludeCt && selectedCt.isNotEmpty() && !selectedCt.equals("Auto", true)) {
-            val idx = headers.indexOfFirst { it.first.equals("Content-Type", true) }
-            if (idx >= 0) headers[idx] = ("Content-Type" to selectedCt) else headers += ("Content-Type" to selectedCt)
+            val idx = headers.indexOfFirst { it.first.equals(contentType, true) }
+            if (idx >= 0) headers[idx] = (contentType to selectedCt) else headers += (contentType to selectedCt)
         }
 
         val body = if (!isMultipart) bodySection.getBodyText() else null
@@ -418,7 +413,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
             JOptionPane.showMessageDialog(
                 this,
                 "Please select a collection",
-                "Validation Error",
+                validationError,
                 JOptionPane.WARNING_MESSAGE
             )
             return null
@@ -578,7 +573,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
             val newName = collectionNameField.text.trim()
             val dirName = newName.replace(' ', '_')
             val collectionsDir = project.basePath?.let { "$it/http-client-plus/collections" } ?: return
-            val newDir = java.io.File(collectionsDir, dirName)
+            val newDir = File(collectionsDir, dirName)
             if (!newDir.exists()) {
                 newDir.mkdirs()
             }
@@ -599,7 +594,7 @@ class HttpClientPlusPanel(private val project: Project) : JPanel(BorderLayout())
 
     private fun loadCollections() {
         val collectionsDir = project.basePath?.let { "$it/http-client-plus/collections" } ?: return
-        val dirFile = java.io.File(collectionsDir)
+        val dirFile = File(collectionsDir)
         if (dirFile.exists() && dirFile.isDirectory) {
             dirFile.listFiles { f -> f.isDirectory }?.forEach { dir ->
                 val name = dir.name.replace('_', ' ') // optional: prettify underscores

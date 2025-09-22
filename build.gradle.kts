@@ -17,8 +17,9 @@ repositories {
     mavenCentral()
 }
 
+val gsonVersion = "2.11.0"
 dependencies {
-    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.google.code.gson:gson:$gsonVersion")
 }
 
 java {
@@ -29,7 +30,7 @@ java {
 
 // Map a simple IDE line selector (build baseline) to product version string
 val ideLine: String = providers.gradleProperty("ideLine").orNull ?: "252"
-val ideVersion: String = providers.gradleProperty("overrideIdeVersion").orNull ?:when (ideLine) {
+val ideVersion: String = providers.gradleProperty("overrideIdeVersion").orNull ?: when (ideLine) {
     "252" -> "2025.2"
     "251" -> "2025.1"
     "243" -> "2024.3"
@@ -95,10 +96,10 @@ tasks {
         ideVersions.set(listOf(ideVersion))
     }
     verifyPlugin {
-      }
+    }
 
     // Copy the built ZIP to dist/<version>/ after build
-    val buildPluginTask = named<org.gradle.api.tasks.bundling.Zip>("buildPlugin")
+    val buildPluginTask = named<Zip>("buildPlugin")
     val copyPluginToDist by registering(Copy::class) {
         dependsOn(buildPluginTask)
         from(buildPluginTask.flatMap { it.archiveFile })
