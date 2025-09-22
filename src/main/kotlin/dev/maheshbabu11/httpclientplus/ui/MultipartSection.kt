@@ -31,6 +31,7 @@ import com.intellij.openapi.project.Project
 import javax.swing.ListSelectionModel
 
 class MultipartSection(private val project: Project) {
+    val textPlain = "text/plain"
     private val boundaryField = com.intellij.ui.components.JBTextField("WebAppBoundary").apply {
         toolTipText = "Boundary used to separate multipart parts"
         preferredSize = Dimension(240, 28)
@@ -56,7 +57,7 @@ class MultipartSection(private val project: Project) {
             DefaultCellEditor(com.intellij.openapi.ui.ComboBox(arrayOf("Text", "File")))
         // Content-Type column editor
         val contentTypes = arrayOf(
-            "text/plain",
+            textPlain,
             "application/json",
             "text/html",
             "text/csv",
@@ -78,12 +79,12 @@ class MultipartSection(private val project: Project) {
 
         val decorated = ToolbarDecorator.createDecorator(table)
             .setAddAction { _ ->
-                model.addRow(arrayOf("Text", "", "text/plain", "", ""))
+                model.addRow(arrayOf("Text", "", textPlain, "", ""))
             }
             .setRemoveAction { _ ->
                 val rows = table.selectedRows.sortedDescending()
                 rows.forEach { model.removeRow(it) }
-                if (model.rowCount == 0) model.addRow(arrayOf("Text", "", "text/plain", "", ""))
+                if (model.rowCount == 0) model.addRow(arrayOf("Text", "", textPlain, "", ""))
             }
             .disableUpDownActions()
             .createPanel()
@@ -91,7 +92,7 @@ class MultipartSection(private val project: Project) {
     }
 
     init {
-        if (model.rowCount == 0) model.addRow(arrayOf("Text", "", "text/plain", "", ""))
+        if (model.rowCount == 0) model.addRow(arrayOf("Text", "", textPlain, "", ""))
     }
 
     fun getBoundary(): String = boundaryField.text.trim().ifBlank { "WebAppBoundary" }
@@ -129,7 +130,7 @@ class MultipartSection(private val project: Project) {
                     name = name,
                     isFile = false,
                     filename = null,
-                    contentType = contentType ?: "text/plain",
+                    contentType = contentType ?: textPlain,
                     value = value ?: "",
                     filePath = null
                 )
@@ -143,7 +144,7 @@ class MultipartSection(private val project: Project) {
         boundaryField.text = boundary ?: "WebAppBoundary"
         model.rowCount = 0
         if (parts.isEmpty()) {
-            model.addRow(arrayOf("Text", "", "text/plain", "", ""))
+            model.addRow(arrayOf("Text", "", textPlain, "", ""))
             return
         }
         parts.forEach { part ->
@@ -162,7 +163,7 @@ class MultipartSection(private val project: Project) {
                     arrayOf(
                         "Text",
                         part.name,
-                        part.contentType ?: "text/plain",
+                        part.contentType ?: textPlain,
                         part.value ?: "",
                         ""
                     )
@@ -174,6 +175,6 @@ class MultipartSection(private val project: Project) {
     fun clear() {
         boundaryField.text = "WebAppBoundary"
         model.rowCount = 0
-        model.addRow(arrayOf("Text", "", "text/plain", "", ""))
+        model.addRow(arrayOf("Text", "", textPlain, "", ""))
     }
 }

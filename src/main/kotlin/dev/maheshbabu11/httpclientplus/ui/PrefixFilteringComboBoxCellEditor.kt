@@ -157,7 +157,7 @@ class PrefixFilteringComboBoxCellEditor(private val options: List<String>) : Abs
         options.forEach { model.addElement(it) }
         // Align selection with the initial value to prevent auto-selecting the first option
         val match = options.firstOrNull { it.equals(initial, ignoreCase = true) }
-        if (!initial.isNullOrEmpty()) {
+        if (initial.isNotEmpty()) {
             if (match != null) {
                 combo.selectedItem = match
             } else {
@@ -172,7 +172,9 @@ class PrefixFilteringComboBoxCellEditor(private val options: List<String>) : Abs
         updating = false
 
         SwingUtilities.invokeLater {
-            try { textComp.select(initial.length, initial.length) } catch (_: Exception) {}
+            try { textComp.select(initial.length, initial.length) } catch (_: Exception) {
+                println("Failed to set selection in combo editor")
+            }
             if (!combo.isPopupVisible) combo.showPopup()
         }
         return combo

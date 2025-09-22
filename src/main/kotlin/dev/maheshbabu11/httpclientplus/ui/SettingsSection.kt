@@ -27,7 +27,8 @@ class SettingsSection {
     private val noRedirectCheck = JCheckBox("No redirect (# @no-redirect)")
     private val noCookieJarCheck = JCheckBox("No cookie jar (# @no-cookie-jar)")
     private val noAutoEncodingCheck = JCheckBox("No auto encoding (# @no-auto-encoding)")
-    private val httpVersionBox = ComboBox(arrayOf("HTTP/1.1 (default)", "HTTP/2")).apply {
+    private val http2 = "HTTP/2"
+    private val httpVersionBox = ComboBox(arrayOf("HTTP/1.1 (default)", http2)).apply {
         selectedIndex = 0
         toolTipText = "Optional HTTP version token in request line"
     }
@@ -71,7 +72,7 @@ class SettingsSection {
     fun isNoAutoEncoding(): Boolean = noAutoEncodingCheck.isSelected
 
     fun httpVersionToken(): String? = when (httpVersionBox.selectedItem as String) {
-        "HTTP/2" -> "HTTP/2"
+        http2 -> http2
         else -> null
     }
 
@@ -79,7 +80,7 @@ class SettingsSection {
         noRedirectCheck.isSelected = noRedirect
         noCookieJarCheck.isSelected = noCookieJar
         noAutoEncodingCheck.isSelected = noAutoEncoding
-        httpVersionBox.selectedItem = if (httpVersion.equals("HTTP/2", true)) "HTTP/2" else "HTTP/1.1 (default)"
+        httpVersionBox.selectedItem = if (httpVersion.equals(http2, true)) http2 else "HTTP/1.1 (default)"
     }
 
     fun clear() {
