@@ -2,8 +2,8 @@
     <id>dev.maheshbabu11.http-client-plus</id>
     <name>HTTP Client Plus</name>
     <vendor email="mahesh.b.pec@gmail.com" url="https://www.maheshbabu11.dev/">Mahesh Babu</vendor>
-    <version>1.0.7</version>
-    <idea-version since-build="242" until-build="252.*"/>
+    <version>1.0.8</version>
+    <idea-version since-build="242" until-build="262.*"/>
 
     <description><![CDATA[
         HTTP Client Plus provides a Postman-like UI for composing and sending HTTP requests directly inside IntelliJ IDEA.
@@ -32,6 +32,10 @@
 
     <change-notes>
         <![CDATA[
+        <h3>1.0.8</h3>
+        <ul>
+            <li>Added latest IntelliJ Platform compatibility.</li>
+        </ul>
         <h3>1.0.7</h3>
         <ul>
         <li> Major UI overhaul for a cleaner, more intuitive experience.</li>

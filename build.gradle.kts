@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.2.0"
+    kotlin("jvm") version "2.4.0"
     id("org.jetbrains.intellij") version "1.17.3"
     id("org.sonarqube") version "6.3.1.5724"
 }
@@ -11,7 +11,7 @@ sonar {
 }
 
 group = "dev.maheshbabu11"
-version = "1.0.7"
+version = "1.0.8"
 
 repositories {
     mavenCentral()
@@ -29,8 +29,11 @@ java {
 }
 
 // Map a simple IDE line selector (build baseline) to product version string
-val ideLine: String = providers.gradleProperty("ideLine").orNull ?: "252"
+val ideLine: String = providers.gradleProperty("ideLine").orNull ?: "262"
 val ideVersion: String = providers.gradleProperty("overrideIdeVersion").orNull ?: when (ideLine) {
+    "262" -> "2026.2"
+    "261" -> "2026.1"
+    "253" -> "2025.3"
     "252" -> "2025.2"
     "251" -> "2025.1"
     "243" -> "2024.3"
