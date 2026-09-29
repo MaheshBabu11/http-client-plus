@@ -86,56 +86,78 @@ object HttpFileService {
     fun updateRequestFile(project: Project, vFile: VirtualFile, data: HttpRequestData): VirtualFile? {
         return try {
             val content = buildHttpContent(data)
-            val docManager = FileDocumentManager.getInstance()
-            val document = docManager.getDocument(vFile)
+            var result: VirtualFile? = null
 
-            if (document != null) {
-                // Update through the Document so all open editors (including our embedded one) refresh immediately
-                ApplicationManager.getApplication().runWriteAction {
+            ApplicationManager.getApplication().runWriteAction {
+                val document = FileDocumentManager.getInstance().getDocument(vFile)
+
+                if (document != null) {
                     document.setText(content)
-                }
-                docManager.saveDocument(document)
-                // Optionally refresh VFS attributes (timestamps) without reloading content we just set
-                vFile.refresh(false, false)
-                vFile.also { refreshed ->
-                    ApplicationManager.getApplication().runReadAction {
-                        PsiManager.getInstance(project).findFile(refreshed)
-                    }
-                }
-            } else {
-                // No cached Document (file not open). Update on disk then refresh VFS
-                val path = Path.of(vFile.path)
-                Files.writeString(path, content, StandardCharsets.UTF_8)
-                LocalFileSystem.getInstance().refreshAndFindFileByPath(path.toString())?.also { refreshed ->
-                    ApplicationManager.getApplication().runReadAction {
-                        PsiManager.getInstance(project).findFile(refreshed)
-                    }
+                    FileDocumentManager.getInstance().saveDocument(document)
+                    result = vFile
+                } else {
+                    vFile.setBinaryContent(content.toByteArray(StandardCharsets.UTF_8))
+                    result = vFile
                 }
             }
-        } catch (_: Exception) {
+
+            result
+        } catch (e: Exception) {
+            com.intellij.openapi.diagnostic.Logger
+                .getInstance(HttpFileService::class.java)
+                .error("Failed to update HTTP file: ${vFile.path}", e)
             null
         }
     }
 
     private fun createOrUpdateHttpFile(project: Project, data: HttpRequestData): VirtualFile? {
         val dirPath = collectionsDir(project, data.saveDirPath) ?: return null
+
         return try {
-            Files.createDirectories(dirPath)
-            val stem = data.name?.takeIf { it.isNotBlank() }?.let { sanitize(it) }
+            val stem = data.name
+                ?.takeIf { it.isNotBlank() }
+                ?.let { sanitize(it) }
                 ?: fileNameFormatter.format(LocalDateTime.now())
-            val filePath = dirPath.resolve("$stem.http")
-            val content = buildHttpContent(data)
-            Files.writeString(filePath, content, StandardCharsets.UTF_8)
-            LocalFileSystem.getInstance().refreshAndFindFileByPath(filePath.toString())?.also { vFile ->
+
+            val fileName = "$stem.http"
+            var result: VirtualFile? = null
+
+            ApplicationManager.getApplication().runWriteAction {
+                Files.createDirectories(dirPath)
+
+                val localFileSystem = LocalFileSystem.getInstance()
+                val dir = localFileSystem.refreshAndFindFileByNioFile(dirPath)
+                    ?: throw IllegalStateException("Unable to find VFS directory: $dirPath")
+
+                val vFile = dir.findChild(fileName)
+                    ?: dir.createChildData(HttpFileService, fileName)
+
+                val content = buildHttpContent(data)
+
+                // Write through IntelliJ VFS so the IDE immediately sees the change.
+                vFile.setBinaryContent(content.toByteArray(StandardCharsets.UTF_8))
+
+                // Keep an already-open editor/document synchronized.
+                FileDocumentManager.getInstance().getDocument(vFile)?.let { document ->
+                    document.setText(content)
+                    FileDocumentManager.getInstance().saveDocument(document)
+                }
+
+                result = vFile
+            }
+
+            result?.also { vFile ->
                 ApplicationManager.getApplication().runReadAction {
-                    PsiManager.getInstance(project).findFile(vFile) // warm PSI
+                    PsiManager.getInstance(project).findFile(vFile)
                 }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            com.intellij.openapi.diagnostic.Logger
+                .getInstance(HttpFileService::class.java)
+                .error("Failed to create/update HTTP file in $dirPath", e)
             null
         }
     }
-
 
     private fun buildHttpContent(data: HttpRequestData): String {
         val sb = StringBuilder()
