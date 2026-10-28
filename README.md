@@ -52,6 +52,7 @@ version-controlled.
 
 - **Postman Import**: Import collections from Postman JSON files
 - **Curl Import**: Paste curl commands to create requests
+- **OpenAPI / Swagger Import**: Generate requests from OpenAPI 3.x or Swagger 2.0 JSON documents, including paths, parameters, and example request bodies
 - **Collection Organization**: Automatic conversion to HTTP Client Plus format
 
 ### Response Management
@@ -87,7 +88,7 @@ version-controlled.
 
 - IntelliJ IDEA 2024.2+ (Ultimate Edition)
 - Built-in HTTP Client enabled (default)
-- JDK 17+ for building from source
+- JDK 25 for building from source
 
 ## 🎥 Demo Video
 

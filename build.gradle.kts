@@ -1,6 +1,6 @@
 plugins {
     kotlin("jvm") version "2.4.0"
-    id("org.jetbrains.intellij") version "1.17.3"
+    id("org.jetbrains.intellij.platform") version "2.19.0"
     id("org.sonarqube") version "6.3.1.5724"
 }
 sonar {
@@ -11,22 +11,7 @@ sonar {
 }
 
 group = "dev.maheshbabu11"
-version = "1.0.9"
-
-repositories {
-    mavenCentral()
-}
-
-val gsonVersion = "2.11.0"
-dependencies {
-    implementation("com.google.code.gson:gson:$gsonVersion")
-}
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-    }
-}
+version = "1.1.0"
 
 // Map a simple IDE line selector (build baseline) to product version string
 val ideLine: String = providers.gradleProperty("ideLine").orNull ?: "262"
@@ -43,25 +28,45 @@ val ideVersion: String = providers.gradleProperty("overrideIdeVersion").orNull ?
     else -> ideLine
 }
 
-intellij {
-    version.set(ideVersion)
-    type.set("IU")
-    plugins.set(
-        listOf(
-            "com.intellij.java"
-        )
-    )
+repositories {
+    mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
+}
+
+val gsonVersion = "2.11.0"
+dependencies {
+    implementation("com.google.code.gson:gson:$gsonVersion")
+    intellijPlatform {
+        create("IU", ideVersion)
+        bundledPlugin("com.intellij.java")
+    }
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }
+}
+
+intellijPlatform {
     instrumentCode.set(true)
-    updateSinceUntilBuild.set(false)
+    buildSearchableOptions.set(false)
+    pluginVerification {
+        ides {
+            current()
+        }
+    }
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(25)
 }
 
-// Ensure Kotlin compiles for JVM 17
+// Ensure Kotlin compiles for JVM 25
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25)
 }
 
 // Produce a plugin ZIP via the build task by default
@@ -74,10 +79,6 @@ tasks {
     // Baseline build number (sinceBuild) tracks ideLine;
     patchPluginXml {
         sinceBuild.set("242")
-    }
-
-    buildSearchableOptions {
-        enabled = false
     }
 
     // Name the ZIP distinctly per IDE line to avoid collisions
@@ -94,16 +95,9 @@ tasks {
         )
     }
 
-    // Verify plugin against the selected IDE version
-    runPluginVerifier {
-        ideVersions.set(listOf(ideVersion))
-    }
-    verifyPlugin {
-    }
-
     // Copy the built ZIP to dist/<version>/ after build
     val buildPluginTask = named<Zip>("buildPlugin")
-    val copyPluginToDist by registering(Copy::class) {
+    val copyPluginToDist = register<Copy>("copyPluginToDist") {
         dependsOn(buildPluginTask)
         from(buildPluginTask.flatMap { it.archiveFile })
         into(layout.projectDirectory.dir("dist/${project.version}"))

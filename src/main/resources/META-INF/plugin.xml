@@ -2,7 +2,7 @@
     <id>dev.maheshbabu11.http-client-plus</id>
     <name>HTTP Client Plus</name>
     <vendor email="mahesh.b.pec@gmail.com" url="https://www.maheshbabu11.dev/">Mahesh Babu</vendor>
-    <version>1.0.9</version>
+    <version>1.0.10</version>
     <idea-version since-build="242" until-build="262.*"/>
 
     <description><![CDATA[
@@ -20,6 +20,7 @@
           <li>For POST requests, automatically adds <code>Content-Type: application/json</code> if missing.</li>
           <li>Each Send saves or updates the <code>.http</code> file; the first Send opens it, later Sends refresh if already open.</li>
           <li>Support for pre and post-request scripts (JavaScript) for advanced request manipulation and response handling.</li>
+          <li>Import requests from OpenAPI 3.x and Swagger 2.0 JSON documents, including operation paths, parameters, and example bodies.</li>
         </ul>
         <b>Usage</b>
         <ul>
@@ -32,6 +33,11 @@
 
     <change-notes>
         <![CDATA[
+        <h3>1.1.0</h3>
+        <ul>
+            <li>Added importing requests from OpenAPI 3.x and Swagger 2.0 JSON documents.</li>
+            <li>Upgraded the project build toolchain to JDK 25.</li>
+        </ul>
         <h3>1.0.9</h3>
         <ul>
             <li>Request save error fixed.</li>

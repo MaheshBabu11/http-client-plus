@@ -25,6 +25,7 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.JBUI
 import dev.maheshbabu11.httpclientplus.importer.CurlImporter
+import dev.maheshbabu11.httpclientplus.importer.OpenApiImporter
 import dev.maheshbabu11.httpclientplus.importer.PostmanImporter
 import dev.maheshbabu11.httpclientplus.service.HttpFileService
 import dev.maheshbabu11.httpclientplus.service.HttpRequestData
@@ -32,12 +33,15 @@ import java.awt.*
 import java.io.File
 import javax.swing.*
 import com.intellij.ui.JBColor
+import javax.swing.text.SimpleAttributeSet
+import javax.swing.text.StyleConstants
 
 class ImportSection(private val project: Project) {
     val component: JComponent
 
     private val postmanPanel = JPanel()
     private val curlPanel = JPanel()
+    private val openApiPanel = JPanel()
     private val cardLayout = CardLayout()
     private val contentPanel = JPanel(cardLayout)
 
@@ -63,6 +67,7 @@ class ImportSection(private val project: Project) {
     private fun setupComponents() {
         setupPostmanPanel()
         setupCurlPanel()
+        setupOpenApiPanel()
         loadCollections()
     }
 
@@ -88,35 +93,19 @@ class ImportSection(private val project: Project) {
         }
     }
 
-    private fun createTypeSelector(): JPanel {
-        val panel = JPanel(FlowLayout(FlowLayout.RIGHT, 0, 0))
-
-        val postmanRadio = JRadioButton("Postman Collection", true).apply {
-            background = null
+    private fun createTypeSelector(): JComponent {
+        return ComboBox(arrayOf("Postman Collection", "cURL Command", "OpenAPI / Swagger")).apply {
+            addActionListener {
+                when (selectedItem) {
+                    "Postman Collection" -> cardLayout.show(contentPanel, "POSTMAN")
+                    "cURL Command" -> {
+                        cardLayout.show(contentPanel, "CURL")
+                        loadCollections()
+                    }
+                    "OpenAPI / Swagger" -> cardLayout.show(contentPanel, "OPENAPI")
+                }
+            }
         }
-        val curlRadio = JRadioButton("cURL Command").apply {
-            background = null
-        }
-
-        ButtonGroup().apply {
-            add(postmanRadio)
-            add(curlRadio)
-        }
-
-        postmanRadio.addActionListener {
-            cardLayout.show(contentPanel, "POSTMAN")
-        }
-
-        curlRadio.addActionListener {
-            cardLayout.show(contentPanel, "CURL")
-            loadCollections() // Refresh collections when switching to cURL
-        }
-
-        panel.add(postmanRadio)
-        panel.add(Box.createHorizontalStrut(16))
-        panel.add(curlRadio)
-
-        return panel
     }
 
     private fun setupPostmanPanel() {
@@ -136,10 +125,7 @@ class ImportSection(private val project: Project) {
                 alignmentX = Component.CENTER_ALIGNMENT
             }
 
-            val descLabel = JLabel("Select a Postman collection JSON file to import").apply {
-                foreground = JBColor.GRAY
-                alignmentX = Component.CENTER_ALIGNMENT
-            }
+            val descLabel = createWrappedDescription("Select a Postman collection JSON file to import")
 
             add(iconLabel)
             add(Box.createVerticalStrut(8))
@@ -212,6 +198,45 @@ class ImportSection(private val project: Project) {
         contentPanel.add(curlPanel, "CURL")
     }
 
+    private fun setupOpenApiPanel() {
+        openApiPanel.layout = BorderLayout()
+        openApiPanel.border = JBUI.Borders.empty(20)
+
+        val infoPanel = JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.Y_AXIS)
+            add(createWrappedDescription("Import requests from an OpenAPI 3.x or Swagger 2.0 JSON file"))
+        }
+        val buttonPanel = JPanel(FlowLayout()).apply {
+            add(JButton("Choose OpenAPI JSON File").apply {
+                preferredSize = Dimension(210, 32)
+                addActionListener { importOpenApi() }
+            })
+        }
+
+        openApiPanel.add(infoPanel, BorderLayout.CENTER)
+        openApiPanel.add(buttonPanel, BorderLayout.SOUTH)
+        contentPanel.add(openApiPanel, "OPENAPI")
+    }
+
+    private fun createWrappedDescription(text: String): JTextPane =
+        JTextPane().apply {
+            this.text = text
+            isEditable = false
+            isFocusable = false
+            isOpaque = false
+            foreground = JBColor.GRAY
+            font = UIManager.getFont("Label.font") ?: JLabel().font
+            val alignment = SimpleAttributeSet().apply {
+                StyleConstants.setAlignment(this, StyleConstants.ALIGN_CENTER)
+            }
+            styledDocument.setParagraphAttributes(0, styledDocument.length, alignment, false)
+            alignmentX = Component.CENTER_ALIGNMENT
+            val descriptionHeight = getFontMetrics(font).height * 3
+            minimumSize = Dimension(0, descriptionHeight)
+            preferredSize = Dimension(0, descriptionHeight)
+            maximumSize = Dimension(Int.MAX_VALUE, descriptionHeight)
+        }
+
     private fun loadCollections() {
         val collectionsDir = File(project.basePath, "http-client-plus/collections")
         val collections = collectionsDir.listFiles()
@@ -264,6 +289,21 @@ class ImportSection(private val project: Project) {
             saveRequests(requests)
         } catch (e: Exception) {
             Messages.showErrorDialog(project, "Failed to import Postman collection: ${e.message}", "Import Error")
+        }
+    }
+
+    private fun importOpenApi() {
+        val descriptor = FileChooserDescriptor(true, false, false, false, false, false)
+            .withFileFilter { it.extension.equals("json", ignoreCase = true) }
+            .withTitle("Select OpenAPI or Swagger JSON File")
+            .withDescription("Choose an OpenAPI 3.x or Swagger 2.0 JSON document")
+        val file = FileChooser.chooseFile(descriptor, project, null) ?: return
+
+        try {
+            val requests = OpenApiImporter().import(project, file)
+            saveRequests(requests)
+        } catch (e: Exception) {
+            Messages.showErrorDialog(project, "Failed to import OpenAPI document: ${e.message}", "Import Error")
         }
     }
 

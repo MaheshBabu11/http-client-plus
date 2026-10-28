@@ -1,5 +1,6 @@
 # Gradle
 .gradle/
+.intellijPlatform/
 build/
 dist/
 out/
@@ -28,3 +29,5 @@ http-client-plus/
 
 # Editor-based HTTP Client requests
 http-client.private.env.json
+
+src/main/resources/test-files
